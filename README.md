@@ -1,4 +1,4 @@
 # Group_J_TBD
 
 Group members: Juna Kawai-Yue, Humaira Ahmed, Katherine Lin
-Topic: TBD
+Topic: Restaurant Code Violations in NYC
