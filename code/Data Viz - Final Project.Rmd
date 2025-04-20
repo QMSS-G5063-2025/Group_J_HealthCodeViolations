@@ -1,0 +1,63 @@
+---
+title: "Data Viz - Final Project (Group J)"
+author: "Katherine Lin, Juna Kawai-Yue, Humaira Ahmed"
+date: "2025-04-18"
+output: html_document
+---
+### Let's do some data input & merge
+```{r}
+# Health code violations
+file_path <- "/Users/kathxlin/Desktop/Data_Viz/hcvyear.csv"
+hcv <- read.csv(file_path)
+
+# Income
+
+
+# Merging
+```
+### Now let's extract the counts per restaurant listed
+```{r}
+library(dplyr)
+# Let's first make a function
+count_bor <- function(data, target){
+  data %>%
+    filter(boro==target) %>%
+    count(dba, building, street, zipcode, cuisine.description, latitude, longitude, name = 'hcv_count')
+}
+# Let's create a new data frame to do so
+hcv_man <- count_bor(hcv, 'Manhattan')
+hcv_bronx <- count_bor(hcv, 'Bronx')
+hcv_brook <- count_bor(hcv, 'Brooklyn')
+hcv_queen <- count_bor(hcv, 'Queens')
+hcv_stat <- count_bor(hcv, 'Staten Island')
+
+# Now let's sort & take top 10
+top10_man <- hcv_man %>%
+  arrange(desc(hcv_count)) %>%
+  slice(1:10)
+
+top10_bronx <- hcv_bronx %>%
+  arrange(desc(hcv_count)) %>%
+  slice(1:10)
+
+top10_brook <- hcv_brook %>%
+  arrange(desc(hcv_count)) %>%
+  slice(1:10)
+
+top10_queen <- hcv_queen %>%
+  arrange(desc(hcv_count)) %>%
+  slice(1:10)
+
+top10_stat <- hcv_stat %>%
+  arrange(desc(hcv_count)) %>%
+  slice(1:10)
+```
+#### Now let's look at each data frame
+```{r}
+top10_man
+top10_bronx
+top10_brook
+top10_queen
+top10_stat
+```
+
