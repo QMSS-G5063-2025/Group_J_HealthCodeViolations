@@ -1,0 +1,118 @@
+---
+title: "Data Viz - Final Project (Group J)"
+author: "Katherine Lin, Juna Kawai-Yue, Humaira Ahmed"
+date: "2025-04-18"
+output: html_document
+---
+### Let's do some data input & merge
+```{r}
+# Health code violations
+file_path <- "insert your own path here"
+hcv <- read.csv(file_path)
+
+# Income
+
+
+# Merging
+```
+### Now let's extract the counts per restaurant listed
+```{r}
+library(dplyr)
+# Let's first make a function
+count_bor <- function(data, target){
+  data %>%
+    filter(boro==target) %>%
+    count(dba, building, street, zipcode, cuisine.description, latitude, longitude, name = 'hcv_count')
+}
+# Let's create a new data frame to do so
+hcv_man <- count_bor(hcv, 'Manhattan')
+hcv_bronx <- count_bor(hcv, 'Bronx')
+hcv_brook <- count_bor(hcv, 'Brooklyn')
+hcv_queen <- count_bor(hcv, 'Queens')
+hcv_stat <- count_bor(hcv, 'Staten Island')
+
+# Now let's sort & take top 10
+top10_man <- hcv_man %>%
+  arrange(desc(hcv_count)) %>%
+  slice(1:10)
+
+top10_bronx <- hcv_bronx %>%
+  arrange(desc(hcv_count)) %>%
+  slice(1:10)
+
+top10_brook <- hcv_brook %>%
+  arrange(desc(hcv_count)) %>%
+  slice(1:10)
+
+top10_queen <- hcv_queen %>%
+  arrange(desc(hcv_count)) %>%
+  slice(1:10)
+
+top10_stat <- hcv_stat %>%
+  arrange(desc(hcv_count)) %>%
+  slice(1:10)
+
+top10_man
+top10_bronx
+top10_brook
+top10_queen
+top10_stat
+```
+#### Now let's look at each data frame
+```{r}
+top10_man
+top10_bronx
+top10_brook
+top10_queen
+top10_stat
+```
+### Let's pull reviews from some places in Brooklyn
+```{r}
+top10_brook
+```
+```{r}
+library(googleway)
+
+# master wok, arch diner are closed (top 1 and 2)
+# let's run this on the other 8 though
+# First let's just pull out the dba and latitude and longitude into single dataframe & remove first two rows
+top10_brook_loc <- tail(top10_brook[c('dba', 'latitude', 'longitude')], 8)
+
+
+```
+```{r}
+key <- 'insert your own key here'
+
+get_reviews <- function(df, key){
+  latitude <- as.numeric(df$latitude)
+  longitude <- as.numeric(df$longitude)
+  
+  results <- google_places(search_string = df$dba, 
+                           location = c(latitude, longitude),
+                           key = key) # search up location and grab information it
+  
+  details <- google_place_details(place_id = results$results[1, "place_id"],
+                                   key = key) # grab more details based on the place_id generated prior
+  
+  reviews <- data.frame(details$result$reviews) # pull out 5 reviews per location
+  
+  if(nrow(reviews) != 0){ 
+    reviews$restaurant <- df$dba # add in restaurant name if reviews are present
+    reviews$rating <- details$result$rating # Add column for main average rating of the restaurant (not ratings provided by the reviewers)
+  }
+  
+  return(reviews)
+}
+
+brook_revs <- bind_rows(apply(top10_brook_loc, 1, function(row){ # run function on data frame of top 10(ish)
+  row <- as.list(row) # run it on the rows individually (we need to convert this to list to work)
+  reviews <- get_reviews(row, key) # run function with personal key
+  
+  return(reviews)
+}))
+
+# Unable to get reviews for Grace Caribbean Cuisine -> total of 35 reviews & ratings
+```
+
+### Let's pull reviews from some places in xyz
+
