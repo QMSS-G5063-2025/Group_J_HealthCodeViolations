@@ -935,6 +935,12 @@ library(dplyr)
 library(plotly)
 library(lubridate) 
 
+
+hcv_recent <- hcv %>%
+  filter(year == 2023)
+
+hcv_recent$inspection.date <- as.Date(hcv_recent$inspection.date)
+
 hcv$inspection.date <- as.Date(hcv$inspection.date)
 hcv$year <- year(hcv$inspection.date)
 
@@ -1009,24 +1015,28 @@ interactive_plot_borough_year
 
 ```{r}
 
-# HEALTH CODE VIOLATIONS BY BOROUGH (LAST 5 YEARS BY MONTH)
-hcv_recent$inspection.date <- as.Date(hcv_recent$inspection.date)
+# HEALTH VIOLATIONS BY BORO BY MONTH 
 
-current_year <- max(hcv_recent$inspection.date)
+hcv$inspection.date <- as.Date(hcv$inspection.date)
+
+current_year <- max(hcv$inspection.date, na.rm = TRUE)
 last_5_years <- current_year - years(5)
 
-hcv_recent_5 <- hcv_recent %>%
+hcv_recent_5 <- hcv %>%
   filter(inspection.date >= last_5_years)
 
-# year and month from inspection.date
+# year and month
 hcv_recent_5 <- hcv_recent_5 %>%
-  mutate(year = format(inspection.date, "%Y"),
-         month = format(inspection.date, "%m"))
+  mutate(
+    year = format(inspection.date, "%Y"),
+    month = format(inspection.date, "%m")
+  )
 
 hcv_borough_month <- hcv_recent_5 %>%
   group_by(boro, year, month) %>%
   summarise(violation_count = n()) %>%
   ungroup()
+
 
 colors_borough <- c("Manhattan" = "#A1C6EA", 
                     "Brooklyn" = "#F1C6B5", 
@@ -1034,49 +1044,48 @@ colors_borough <- c("Manhattan" = "#A1C6EA",
                     "Bronx" = "#F5B9D8", 
                     "Staten Island" = "#D6AEDD")
 
-# line plot
 plot_violations_by_borough <- ggplot(hcv_borough_month, aes(x = interaction(year, month), y = violation_count, color = boro, group = boro)) +
   geom_line(size = 0.8) +  
   geom_point(size = 3, shape = 21, fill = "white") +  
   scale_color_manual(values = colors_borough) +
   labs(
-    title = "Health Code Violations by Borough (Last 5 Years)",
-    x = "Month",  # Label x-axis as 'Month'
-    y = "Number of Violations",   
+    title = "Health Code Violations by Borough (Last 5 Years by Month)",
+    x = "Month",
+    y = "Number of Violations",
     color = "Borough"
   ) +
   scale_y_continuous(
     breaks = seq(0, max(hcv_borough_month$violation_count), by = 5000)
   ) +
-  theme_minimal(base_size = 14) +   
+  theme_minimal(base_size = 14) +
   theme(
     plot.title = element_text(size = 14, color = "#333333"),
     axis.title = element_text(size = 12, face = "light"),
     axis.text = element_text(size = 10, color = "#555555"),
     legend.title = element_text(size = 12, face = "light"),
     legend.text = element_text(size = 10),
-    panel.grid.major = element_blank(),   
-    panel.grid.minor = element_blank(),   
-    axis.text.x = element_blank()  # 
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.text.x = element_blank()
   )
 
-# plotly
 interactive_plot_borough2 <- ggplotly(plot_violations_by_borough) %>%
   layout(
     xaxis = list(
-      showticklabels = FALSE   
+      showticklabels = FALSE
     ),
     yaxis = list(
-      fixedrange = FALSE  
+      fixedrange = FALSE
     ),
     hoverlabel = list(
-      bgcolor = "white",  
-      font = list(color = "black")  
+      bgcolor = "white",
+      font = list(color = "black")
     ),
-    hoverinfo = "text"   
+    hoverinfo = "text"
   )
 
 interactive_plot_borough2
+
 
 ```
 
