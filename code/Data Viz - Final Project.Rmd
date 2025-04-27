@@ -45,7 +45,6 @@ names(hcv)
 
 ### Now let's extract the counts per restaurant listed
 ```{r}
-library(dplyr)
 # Let's first make a function
 count_bor <- function(data, target){
   data %>%
@@ -1090,6 +1089,7 @@ interactive_plot_borough2
 ```
 
 ```{r}
+merged_data <- merge(hcv, avg_income, by = "zipcode", all.x = TRUE)
 
 # aggregate data by borough and income range
 merged_data_count <- merged_data %>%
@@ -1122,4 +1122,337 @@ plot_ly(agg_data, x = ~income_group, y = ~avg_violations, color = ~boro,
 
 
 ```
+
+```{r}
+## Word Clouds 
+
+# queens 
+queens_revs = read.csv("queens_revs.csv")
+names(queens_revs)
+
+library(wordcloud)
+library(tm)
+
+colors_borough <- c("Manhattan" = "#A1C6EA", 
+                    "Brooklyn" = "#F1C6B5", 
+                    "Queens" = "#C1E5D7", 
+                    "Bronx" = "#F5B9D8", 
+                    "Staten Island" = "#D6AEDD")
+
+text_corpus <- Corpus(VectorSource(queens_revs$text))
+
+text_corpus <- text_corpus %>%
+  tm_map(content_transformer(tolower)) %>%
+  tm_map(removePunctuation) %>%
+  tm_map(removeNumbers) %>%
+  tm_map(removeWords, stopwords("english")) %>%
+  tm_map(stripWhitespace)
+
+tdm <- TermDocumentMatrix(text_corpus)
+m <- as.matrix(tdm)
+
+word_freqs <- sort(rowSums(m), decreasing = TRUE)
+
+word_freqs_df <- data.frame(word = names(word_freqs), freq = word_freqs)
+
+queens_cloud = wordcloud(words = word_freqs_df$word, freq = word_freqs_df$freq,
+          min.freq = 2,           
+          max.words = 100,    
+          random.order = FALSE,  
+          colors = colors_borough) 
+
+# bronx
+bronx_revs = read.csv("bronx_revs.csv")
+
+text_corpus_bronx <- Corpus(VectorSource(bronx_revs$text))
+
+text_corpus_bronx <- text_corpus_bronx %>%
+  tm_map(content_transformer(tolower)) %>%
+  tm_map(removePunctuation) %>%
+  tm_map(removeNumbers) %>%
+  tm_map(removeWords, stopwords("english")) %>%
+  tm_map(stripWhitespace)
+
+tdm_bronx <- TermDocumentMatrix(text_corpus_bronx)
+
+m_bronx <- as.matrix(tdm_bronx)
+
+word_freqs_bronx <- sort(rowSums(m_bronx), decreasing = TRUE)
+
+word_freqs_df_bronx <- data.frame(word = names(word_freqs_bronx), freq = word_freqs_bronx)
+
+bronx_cloud = wordcloud(words = word_freqs_df_bronx$word, freq = word_freqs_df_bronx$freq,
+          min.freq = 2,
+          max.words = 100,
+          random.order = FALSE,
+          colors = colors_borough)
+
+# manhattan 
+man_revs = read.csv("man_revs.csv")
+
+text_corpus_man <- Corpus(VectorSource(man_revs$text))
+
+text_corpus_man <- text_corpus_man %>%
+  tm_map(content_transformer(tolower)) %>%
+  tm_map(removePunctuation) %>%
+  tm_map(removeNumbers) %>%
+  tm_map(removeWords, stopwords("english")) %>%
+  tm_map(stripWhitespace)
+
+tdm_man <- TermDocumentMatrix(text_corpus_man)
+
+m_man <- as.matrix(tdm_man)
+
+word_freqs_man <- sort(rowSums(m_man), decreasing = TRUE)
+
+word_freqs_df_man <- data.frame(word = names(word_freqs_man), freq = word_freqs_man)
+
+wordcloud(words = word_freqs_df_man$word, freq = word_freqs_df_man$freq,
+          min.freq = 2,
+          max.words = 100,
+          random.order = FALSE,
+          colors = colors_borough)
+
+# brooklyn
+brook_revs = read.csv("brook_revs.csv")
+
+text_corpus_brook <- Corpus(VectorSource(brook_revs$text))
+
+text_corpus_brook <- text_corpus_brook %>%
+  tm_map(content_transformer(tolower)) %>%
+  tm_map(removePunctuation) %>%
+  tm_map(removeNumbers) %>%
+  tm_map(removeWords, stopwords("english")) %>%
+  tm_map(stripWhitespace)
+
+tdm_brook <- TermDocumentMatrix(text_corpus_brook)
+
+m_brook <- as.matrix(tdm_brook)
+
+word_freqs_brook <- sort(rowSums(m_brook), decreasing = TRUE)
+
+word_freqs_df_brook <- data.frame(word = names(word_freqs_brook), freq = word_freqs_brook)
+
+wordcloud(words = word_freqs_df_brook$word, freq = word_freqs_df_brook$freq,
+          min.freq = 2,
+          max.words = 100,
+          random.order = FALSE,
+          colors = colors_borough)
+
+# staten island
+stat_revs = read.csv("stat_revs.csv")
+
+text_corpus_stat <- Corpus(VectorSource(stat_revs$text))
+
+text_corpus_stat <- text_corpus_stat %>%
+  tm_map(content_transformer(tolower)) %>%
+  tm_map(removePunctuation) %>%
+  tm_map(removeNumbers) %>%
+  tm_map(removeWords, stopwords("english")) %>%
+  tm_map(stripWhitespace)
+
+tdm_stat <- TermDocumentMatrix(text_corpus_stat)
+
+m_stat <- as.matrix(tdm_stat)
+
+word_freqs_stat <- sort(rowSums(m_stat), decreasing = TRUE)
+
+word_freqs_df_stat <- data.frame(word = names(word_freqs_stat), freq = word_freqs_stat)
+
+wordcloud(words = word_freqs_df_stat$word, freq = word_freqs_df_stat$freq,
+          min.freq = 2,
+          max.words = 100,
+          random.order = FALSE,
+          colors = colors_borough)
+
+```
+
+```{r}
+# Sentiment analysis 
+library(syuzhet)
+
+# Function to get sentiment scores
+get_sentiment_scores <- function(text_data) {
+  # Clean text (optional if you want very pure text, can skip if already clean)
+  text_data <- tolower(text_data)
+  text_data <- gsub("[^[:alnum:] ]", "", text_data)
+  
+  # Get sentiment
+  sentiment_scores <- get_sentiment(text_data, method = "syuzhet")
+  return(sentiment_scores)
+}
+
+# Apply to each borough
+queens_sentiment <- get_sentiment_scores(queens_revs$text)
+bronx_sentiment <- get_sentiment_scores(bronx_revs$text)
+man_sentiment <- get_sentiment_scores(man_revs$text)
+brook_sentiment <- get_sentiment_scores(brook_revs$text)
+stat_sentiment <- get_sentiment_scores(stat_revs$text)
+
+data.frame(
+  Borough = c("Queens", "Bronx", "Manhattan", "Brooklyn", "Staten Island"),
+  Mean_Sentiment = c(mean(queens_sentiment),
+                     mean(bronx_sentiment),
+                     mean(man_sentiment),
+                     mean(brook_sentiment),
+                     mean(stat_sentiment))
+)
+
+library(ggplot2)
+library(plotly)
+
+sentiment_df <- data.frame(
+  Borough = c("Queens", "Bronx", "Manhattan", "Brooklyn", "Staten Island"),
+  Mean_Sentiment = c(mean(queens_sentiment),
+                     mean(bronx_sentiment),
+                     mean(man_sentiment),
+                     mean(brook_sentiment),
+                     mean(stat_sentiment))
+)
+
+plot_ly(
+  data = sentiment_df,
+  x = ~Borough,
+  y = ~Mean_Sentiment,
+  type = 'bar',
+  marker = list(color = unname(colors_borough))  # match borough colors
+) %>%
+  layout(
+    title = "Average Sentiment Score by Borough - Google Reviews",
+    xaxis = list(title = "Borough"),
+    yaxis = list(title = "Average Sentiment"),
+    hovermode = "closest"
+  )
+
+```
+
+```{r}
+library(plotly)
+
+# top 15 words
+top_words_queens <- word_freqs_df %>% 
+  top_n(15, freq) %>%
+  arrange(freq)
+
+# static ggplot
+queens_bar <- ggplot(top_words_queens, aes(x = reorder(word, freq), y = freq)) +
+  geom_col(fill = colors_borough["Queens"]) +
+  coord_flip() +
+  labs(title = "Top Words in Queens Reviews",
+       x = "Word",
+       y = "Frequency") +
+  theme_minimal()
+
+#plotly 
+ggplotly(queens_bar)
+
+# bronx 
+top_words_bronx <- word_freqs_df_bronx %>% 
+  top_n(15, freq) %>%
+  arrange(freq)
+
+bronx_bar <- ggplot(top_words_bronx, aes(x = reorder(word, freq), y = freq)) +
+  geom_col(fill = colors_borough["Bronx"]) +
+  coord_flip() +
+  labs(title = "Top Words in Bronx Reviews",
+       x = "Word",
+       y = "Frequency") +
+  theme_minimal()
+
+ggplotly(bronx_bar)
+
+
+# manhattan 
+top_words_man <- word_freqs_df_man %>% 
+  top_n(15, freq) %>%
+  arrange(freq)
+
+man_bar <- ggplot(top_words_man, aes(x = reorder(word, freq), y = freq)) +
+  geom_col(fill = colors_borough["Manhattan"]) +
+  coord_flip() +
+  labs(title = "Top Words in Manhattan Reviews",
+       x = "Word",
+       y = "Frequency") +
+  theme_minimal()
+
+ggplotly(man_bar)
+
+# brooklyn 
+top_words_brook <- word_freqs_df_brook %>% 
+  top_n(15, freq) %>%
+  arrange(freq)
+
+brook_bar <- ggplot(top_words_brook, aes(x = reorder(word, freq), y = freq)) +
+  geom_col(fill = colors_borough["Brooklyn"]) +
+  coord_flip() +
+  labs(title = "Top Words in Brooklyn Reviews",
+       x = "Word",
+       y = "Frequency") +
+  theme_minimal()
+
+ggplotly(brook_bar)
+
+
+# staten island 
+top_words_stat <- word_freqs_df_stat %>% 
+  top_n(15, freq) %>%
+  arrange(freq)
+
+stat_bar <- ggplot(top_words_stat, aes(x = reorder(word, freq), y = freq)) +
+  geom_col(fill = colors_borough["Staten Island"]) +
+  coord_flip() +
+  labs(title = "Top Words in Staten Island Reviews",
+       x = "Word",
+       y = "Frequency") +
+  theme_minimal()
+
+ggplotly(stat_bar)
+
+
+
+```
+
+```{r}
+# all of NYC 
+all_revs <- bind_rows(
+  man_revs,
+  brook_revs,
+  queens_revs,
+  bronx_revs,
+  stat_revs
+)
+
+text_corpus_all <- Corpus(VectorSource(all_revs$text))
+
+text_corpus_all <- text_corpus_all %>%
+  tm_map(content_transformer(tolower)) %>%
+  tm_map(removePunctuation) %>%
+  tm_map(removeNumbers) %>%
+  tm_map(removeWords, stopwords("english")) %>%
+  tm_map(stripWhitespace)
+
+tdm_all <- TermDocumentMatrix(text_corpus_all)
+m_all <- as.matrix(tdm_all)
+
+word_freqs_all <- sort(rowSums(m_all), decreasing = TRUE)
+
+word_freqs_df_all <- data.frame(word = names(word_freqs_all), freq = word_freqs_all)
+
+top_words_nyc <- word_freqs_df_all %>%
+  top_n(15, freq) %>%
+  arrange(freq)
+
+nyc_bar <- ggplot(top_words_nyc, aes(x = reorder(word, freq), y = freq)) +
+  geom_col(fill = "#4E79A7") +   
+  coord_flip() +
+  labs(title = "Top Words in NYC Reviews",
+       x = "Word",
+       y = "Frequency") +
+  theme_minimal()
+
+nyc_plot <- ggplotly(nyc_bar)
+nyc_plot
+
+```
+
 
