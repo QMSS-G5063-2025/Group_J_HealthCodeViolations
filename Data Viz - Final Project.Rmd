@@ -1,0 +1,1116 @@
+---
+title: "Data Viz - Final Project (Group J)"
+author: "Katherine Lin, Juna Kawai-Yue, Humaira Ahmed"
+date: "2025-04-18"
+output: html_document
+---
+### Let's do some data input & merge
+```{r}
+# Health code violations
+file_path <- "~/Desktop/Data_Viz/hcvyear.csv"
+hcv <- read.csv("hcvyear.csv")
+
+# Income
+library(dplyr)
+
+nyczips <- read.csv("nyc-zip-codes.csv")
+dta <- read.csv("22zpallagi.csv")
+
+# filter dta to only rows with zip code in the list of NYC Zip Codes
+dta_nyc <- dta[dta$zipcode %in% nyczips$ZipCode, ]
+head(dta_nyc)
+
+income_filtered <- dta_nyc %>%
+  select(STATE, zipcode, agi_stub, A00100, A02650)
+
+
+# average AGI and income per ZIP code
+avg_income <- dta_nyc %>%
+  group_by(zipcode) %>%
+  summarise(
+    avg_AGI = mean(A00100, na.rm = TRUE),
+    avg_income = mean(A02650, na.rm = TRUE)
+  )
+
+head(avg_income)
+
+names(avg_income)
+names(hcv)
+
+# Merging
+
+
+
+```
+
+### Now let's extract the counts per restaurant listed
+```{r}
+library(dplyr)
+# Let's first make a function
+count_bor <- function(data, target){
+  data %>%
+    filter(boro==target) %>%
+    filter(critical.flag != 'Not Applicable') %>%
+    filter(inspection.date != 1900-01-01) %>%
+    count(dba, building, street, zipcode, cuisine.description, latitude, longitude, name = 'hcv_count')
+}
+
+#apply to whole data set such that each line is a restaurant (rather than multiple entries)
+count_whole <- function(data){
+  data %>%
+    filter(inspection.date != 1900-01-01)  %>%
+    filter(critical.flag != 'Not Applicable') %>%
+    count(dba, building, street, zipcode, cuisine.description, latitude, longitude, name = 'hcv_count')
+}
+# Let's create a new data frame to do so
+hcv_man <- count_bor(hcv, 'Manhattan')
+hcv_bronx <- count_bor(hcv, 'Bronx')
+hcv_brook <- count_bor(hcv, 'Brooklyn')
+hcv_queen <- count_bor(hcv, 'Queens')
+hcv_stat <- count_bor(hcv, 'Staten Island')
+hcv_total <- count_whole(hcv)
+
+# Now let's sort & take top 10
+top10_man <- hcv_man %>%
+  arrange(desc(hcv_count)) %>%
+  slice(1:10)
+
+top10_bronx <- hcv_bronx %>%
+  arrange(desc(hcv_count)) %>%
+  slice(1:10)
+
+top10_brook <- hcv_brook %>%
+  arrange(desc(hcv_count)) %>%
+  slice(1:10)
+
+top10_queen <- hcv_queen %>%
+  arrange(desc(hcv_count)) %>%
+  slice(1:10)
+
+top10_stat <- hcv_stat %>%
+  arrange(desc(hcv_count)) %>%
+  slice(1:10)
+```
+#### Now let's look at each data frame
+```{r}
+top10_man
+top10_bronx
+top10_brook
+top10_queen
+top10_stat
+```
+### Let's pull reviews from some places in Brooklyn
+```{r}
+top10_bronx 
+top10_queen
+```
+
+```{r}
+library(googleway)
+
+# master wok, arch diner are closed (top 1 and 2)
+# let's run this on the other 8 though
+# First let's just pull out the dba and latitude and longitude into single dataframe & remove first two rows
+top10_bronx_loc <- tail(top10_bronx[c('dba', 'latitude', 'longitude')], 10)
+top10_queen_loc <- tail(top10_queen[c('dba', 'latitude', 'longitude')], 9)
+```
+
+```{r}
+key <- 'AIzaSyCgH6fJTLtNJluE4X9_qluiQB5DTaxIMlo'
+
+# bronx 
+get_reviews <- function(df, key){
+  latitude <- as.numeric(df$latitude)
+  longitude <- as.numeric(df$longitude)
+  
+  results <- google_places(search_string = df$dba, 
+                           location = c(latitude, longitude),
+                           key = key) # search up location and grab information it
+  
+  details <- google_place_details(place_id = results$results[1, "place_id"],
+                                   key = key) # grab more details based on the place_id generated prior
+  
+  reviews <- data.frame(details$result$reviews) # pull out 5 reviews per location
+  
+  if(nrow(reviews) != 0){ 
+    reviews$restaurant <- df$dba # add in restaurant name if reviews are present
+    reviews$rating <- details$result$rating # Add column for main average rating of the restaurant (not ratings provided by the reviewers)
+  }
+  
+  return(reviews)
+}
+
+bronx_revs <- bind_rows(apply(top10_bronx_loc, 1, function(row){ # run function on data frame of top 10(ish)
+  row <- as.list(row) # run it on the rows individually (we need to convert this to list to work)
+  reviews <- get_reviews(row, key) # run function with personal key
+  
+  return(reviews)
+}))
+
+write.csv(bronx_revs,"/Users/natashaahmed/Desktop/Data Viz/final project/bronx_revs.csv", row.names = FALSE)
+
+
+# queens 
+get_reviews <- function(df, key){
+  latitude <- as.numeric(df$latitude)
+  longitude <- as.numeric(df$longitude)
+  
+  results <- google_places(search_string = df$dba, 
+                           location = c(latitude, longitude),
+                           key = key) # search up location and grab information it
+  
+  details <- google_place_details(place_id = results$results[1, "place_id"],
+                                   key = key) # grab more details based on the place_id generated prior
+  
+  reviews <- data.frame(details$result$reviews) # pull out 5 reviews per location
+  
+  if(nrow(reviews) != 0){ 
+    reviews$restaurant <- df$dba # add in restaurant name if reviews are present
+    reviews$rating <- details$result$rating # Add column for main average rating of the restaurant (not ratings provided by the reviewers)
+  }
+  
+  return(reviews)
+}
+
+queen_revs <- bind_rows(apply(top10_queen_loc, 1, function(row){ 
+  row <- as.list(row) 
+  reviews <- tryCatch({
+    get_reviews(row, key)
+  }, error = function(e) {
+    return(NULL) # if there's an error (like no results), return NULL
+  })
+  
+  if (!is.null(reviews) && nrow(reviews) > 0) {
+    return(reviews)
+  } else {
+    return(NULL)
+  }
+}))
+
+write.csv(queen_revs,"/Users/natashaahmed/Desktop/Data Viz/final project/queens_revs.csv", row.names = FALSE)
+
+# Unable to get reviews for Grace Caribbean Cuisine -> total of 35 reviews & ratings
+# unable to get reviews for prima pasta & cafe, queens (temp closed)
+
+```
+
+### Let's create maps for the top 500 restaurants with the most violations across boroughs and all of NYC
+```{r}
+# First we need to create an 'address' object for all for labelling in the maps
+hcv_man$address <- paste(hcv_man$building, hcv_man$street, hcv_man$zipcode)
+
+hcv_total$address <- paste(hcv_total$building, hcv_total$street, hcv_total$zipcode)
+
+hcv_brook$address <- paste(hcv_brook$building, hcv_brook$street, hcv_brook$zipcode)
+
+hcv_stat$address <- paste(hcv_stat$building, hcv_stat$street, hcv_stat$zipcode)
+
+hcv_queen$address <- paste(hcv_queen$building, hcv_queen$street, hcv_queen$zipcode)
+
+hcv_bronx$address <- paste(hcv_bronx$building, hcv_bronx$street, hcv_bronx$zipcode)
+```
+
+```{r}
+# To avoid crashing, let's limit it to 500 restaurants, so we'll create new dataframes similar to before
+top500_man <- hcv_man %>%
+  arrange(desc(hcv_count)) %>%
+  slice(1:500)
+
+top500_bronx <- hcv_bronx %>%
+  arrange(desc(hcv_count)) %>%
+  slice(1:500)
+
+top500_brook <- hcv_brook %>%
+  arrange(desc(hcv_count)) %>%
+  slice(1:500)
+
+top500_queen <- hcv_queen %>%
+  arrange(desc(hcv_count)) %>%
+  slice(1:500)
+
+top500_stat <- hcv_stat %>%
+  arrange(desc(hcv_count)) %>%
+  slice(1:500)
+
+top500_total <- hcv_total %>%
+  arrange(desc(hcv_count)) %>%
+  slice(1:500)
+```
+
+```{r}
+library(leaflet)
+library(htmltools)
+# entire NYC
+
+# by borough
+# Manhattan
+m <- leaflet() %>%
+  addProviderTiles(providers$CartoDB.Positron) %>%
+  setView(lng = -74.0060, lat = 40.7128, zoom = 12)
+
+m1 <- m %>% addAwesomeMarkers(
+  data = top500_man,
+  lng = ~longitude, 
+  lat = ~latitude,
+  clusterOptions = markerClusterOptions(),
+  popup = ~paste(
+    "<h4>", dba, "</h4>",
+    "<b>Address:</b> ", address, "<br>",
+    "<b>Cusisine Type:</b> ", cuisine.description, "<br>",
+    "<b>Total Violation Count:</b> ", hcv_count, "<br>"
+  ),
+  label = ~dba,
+  icon = awesomeIcons(
+    icon = 'info-circle',  # Valid FontAwesome icon
+    markerColor = ifelse(top500_man$hcv_count > 0 & top500_man$hcv_count <= 20, "beige", 
+                          ifelse(
+                            top500_man$hcv_count >= 21 & top500_man$hcv_count <= 40, "orange",
+                            ifelse(
+                              top500_man$hcv_count >= 41 & top500_man$hcv_count <= 60, "red",
+                          "darkred"))),
+    library = 'fa'  # Use FontAwesome instead of glyphicon
+  )
+) %>% addLegend( 
+   'bottomright' , 
+   colors=c("beige","orange", "red", "darkred"),
+   labels=c('1-20','21-40', '41-60', '61+'),
+   title = "Total Number of Violations"
+)
+  
+m1
+```
+```{r}
+# Bronx
+m2 <- leaflet() %>%
+  addProviderTiles(providers$CartoDB.Positron) %>%
+  setView(lng = -74.0060, lat = 40.7128, zoom = 12)
+
+m3 <- m2 %>% addAwesomeMarkers(
+  data = top500_bronx,
+  lng = ~longitude, 
+  lat = ~latitude,
+  clusterOptions = markerClusterOptions(),
+ popup = ~paste(
+    "<h4>", dba, "</h4>",
+    "<b>Address:</b> ", address, "<br>",
+    "<b>Cusisine Type:</b> ", cuisine.description, "<br>",
+    "<b>Total Violation Count:</b> ", hcv_count, "<br>"
+  ),
+  label = ~dba,
+  icon = awesomeIcons(
+    icon = 'info-circle',  # Valid FontAwesome icon
+    markerColor = ifelse(top500_bronx$hcv_count > 0 & top500_bronx$hcv_count <= 20, "beige", 
+                          ifelse(
+                            top500_bronx$hcv_count >= 21 & top500_bronx$hcv_count <= 40, "orange",
+                            ifelse(
+                              top500_bronx$hcv_count >= 41 & top500_bronx$hcv_count <= 60, "red",
+                          "darkred"))),
+    library = 'fa'  # Use FontAwesome instead of glyphicon
+  )
+) %>% addLegend( 
+   'bottomright' , 
+   colors=c("beige","orange", "red", "darkred"),
+   labels=c('1-20','21-40', '41-60', '61+'),
+   title = "Total Number of Violations"
+)
+  
+m3
+```
+```{r}
+# Brooklyn
+m4 <- leaflet() %>%
+  addProviderTiles(providers$CartoDB.Positron) %>%
+  setView(lng = -74.0060, lat = 40.7128, zoom = 12)
+
+m5 <- m4 %>% addAwesomeMarkers(
+  data = top500_brook,
+  lng = ~longitude, 
+  lat = ~latitude,
+  clusterOptions = markerClusterOptions(),
+  popup = ~paste(
+    "<h4>", dba, "</h4>",
+    "<b>Address:</b> ", address, "<br>",
+    "<b>Cusisine Type:</b> ", cuisine.description, "<br>",
+    "<b>Total Violation Count:</b> ", hcv_count, "<br>"
+  ),
+  label = ~dba,
+  icon = awesomeIcons(
+    icon = 'info-circle',  # Valid FontAwesome icon
+    markerColor = ifelse(top500_brook$hcv_count > 0 & top500_brook$hcv_count <= 20, "beige", 
+                          ifelse(
+                            top500_brook$hcv_count >= 21 & top500_brook$hcv_count <= 40, "orange",
+                            ifelse(
+                              top500_brook$hcv_count >= 41 & top500_brook$hcv_count <= 60, "red",
+                          "darkred"))),
+    library = 'fa'  # Use FontAwesome instead of glyphicon
+  )
+) %>% addLegend( 
+   'bottomright' , 
+   colors=c("beige","orange", "red", "darkred"),
+   labels=c('1-20','21-40', '41-60', '61+'),
+   title = "Total Number of Violations"
+)
+  
+m5
+```
+```{r}
+# Queens
+m6 <- leaflet() %>%
+  addProviderTiles(providers$CartoDB.Positron) %>%
+  setView(lng = -74.0060, lat = 40.7128, zoom = 12)
+
+m7 <- m6 %>% addAwesomeMarkers(
+  data = top500_queen,
+  lng = ~longitude, 
+  lat = ~latitude,
+  clusterOptions = markerClusterOptions(),
+  popup = ~paste(
+    "<h4>", dba, "</h4>",
+    "<b>Address:</b> ", address, "<br>",
+    "<b>Cusisine Type:</b> ", cuisine.description, "<br>",
+    "<b>Total Violation Count:</b> ", hcv_count, "<br>"
+  ),
+  label = ~dba,
+  icon = awesomeIcons(
+    icon = 'info-circle',  # Valid FontAwesome icon
+    markerColor = ifelse(top500_queen$hcv_count > 0 & top500_queen$hcv_count <= 20, "beige", 
+                          ifelse(
+                            top500_queen$hcv_count >= 21 & top500_queen$hcv_count <= 40, "orange",
+                            ifelse(
+                              top500_queen$hcv_count >= 41 & top500_queen$hcv_count <= 60, "red",
+                          "darkred"))),
+    library = 'fa'  # Use FontAwesome instead of glyphicon
+  )
+) %>% addLegend( 
+   'bottomright' , 
+   colors=c("beige","orange", "red", "darkred"),
+   labels=c('1-20','21-40', '41-60', '61+'),
+   title = "Total Number of Violations"
+)
+  
+m7
+```
+```{r}
+# Staten Island
+m8 <- leaflet() %>%
+  addProviderTiles(providers$CartoDB.Positron) %>%
+  setView(lng = -74.0060, lat = 40.7128, zoom = 12)
+
+m9 <- m8 %>% addAwesomeMarkers(
+  data = top500_stat,
+  lng = ~longitude, 
+  lat = ~latitude,
+  clusterOptions = markerClusterOptions(),
+  popup = ~paste(
+    "<h4>", dba, "</h4>",
+    "<b>Address:</b> ", address, "<br>",
+    "<b>Cusisine Type:</b> ", cuisine.description, "<br>",
+    "<b>Total Violation Count:</b> ", hcv_count, "<br>"
+  ),
+  label = ~dba,
+  icon = awesomeIcons(
+    icon = 'info-circle',  # Valid FontAwesome icon
+    markerColor = ifelse(top500_stat$hcv_count > 0 & top500_stat$hcv_count <= 20, "beige", 
+                          ifelse(
+                            top500_stat$hcv_count >= 21 & top500_stat$hcv_count <= 40, "orange",
+                            ifelse(
+                              top500_stat$hcv_count >= 41 & top500_stat$hcv_count <= 60, "red",
+                          "darkred"))),
+    library = 'fa'  # Use FontAwesome instead of glyphicon
+  )
+) %>% addLegend( 
+   'bottomright' , 
+   colors=c("beige","orange", "red", "darkred"),
+   labels=c('1-20','21-40', '41-60', '61+'),
+   title = "Total Number of Violations"
+)
+  
+m9
+```
+```{r}
+# Entire NYC
+m10 <- leaflet() %>%
+  addProviderTiles(providers$CartoDB.Positron) %>%
+  setView(lng = -74.0060, lat = 40.7128, zoom = 12)
+
+m11 <- m10 %>% addAwesomeMarkers(
+  data = top500_total,
+  lng = ~longitude, 
+  lat = ~latitude,
+  clusterOptions = markerClusterOptions(),
+  popup = ~paste(
+    "<h4>", dba, "</h4>",
+    "<b>Address:</b> ", address, "<br>",
+    "<b>Cusisine Type:</b> ", cuisine.description, "<br>",
+    "<b>Total Violation Count:</b> ", hcv_count, "<br>"
+  ),
+  label = ~dba,
+  icon = awesomeIcons(
+    icon = 'info-circle',  # Valid FontAwesome icon
+    markerColor = ifelse(top500_total$hcv_count > 0 & top500_total$hcv_count <= 20, "beige", 
+                          ifelse(
+                            top500_total$hcv_count >= 21 & top500_total$hcv_count <= 40, "orange",
+                            ifelse(
+                              top500_total$hcv_count >= 41 & top500_total$hcv_count <= 60, "red",
+                          "darkred"))),
+    library = 'fa'  # Use FontAwesome instead of glyphicon
+  )
+) %>% addLegend( 
+   'bottomright' , 
+   colors=c("beige","orange", "red", "darkred"),
+   labels=c('1-20','21-40', '41-60', '61+'),
+   title = "Total Number of Violations"
+)
+  
+m11
+```
+### Let's create maps for the top 10 most common critical violations
+```{r}
+# First we need to identify which are the top 4 most common violations overall, so we'll create a brand new function
+count_whole2 <- function(data){
+  data %>%
+    filter(inspection.date != 1900-01-01) %>%
+    filter(critical.flag != 'Not Applicable') %>%
+    count(violation.description, critical.flag, name = 'viol_count')
+}
+
+# Apply function & pull top 4
+violations <- count_whole2(hcv) %>%
+  filter(critical.flag == 'Critical') %>%
+  arrange(desc(viol_count)) %>%
+  slice(1:10)
+
+violations_list <- violations$violation.description
+
+# Let's create lists for restaurants that have these violations
+viol1 <- hcv %>%
+  filter(violation.description == violations_list[1])
+
+viol2 <- hcv %>%
+  filter(violation.description == violations_list[2])
+
+viol3 <- hcv %>%
+  filter(violation.description == violations_list[3])
+
+viol4 <- hcv %>%
+  filter(violation.description == violations_list[4])
+
+viol5 <- hcv %>%
+  filter(violation.description == violations_list[5])
+
+viol6 <- hcv %>%
+  filter(violation.description == violations_list[6])
+
+viol7 <- hcv %>%
+  filter(violation.description == violations_list[7])
+
+viol8 <- hcv %>%
+  filter(violation.description == violations_list[8])
+
+viol9 <- hcv %>%
+  filter(violation.description == violations_list[9])
+
+viol10 <- hcv %>%
+  filter(violation.description == violations_list[10])
+
+#apply to whole data set such that each line is a restaurant (rather than multiple entries)
+count_whole3 <- function(data){
+  data %>%
+    count(dba, building, street, zipcode, cuisine.description, latitude, longitude, violation.description, name = 'v_count')
+}
+
+# All of NYC
+# Just to ensure that these only include ones that have had these issues before
+viol1_total <- count_whole3(viol1) %>%
+  filter(v_count >= 1)
+viol2_total <- count_whole3(viol2)%>%
+  filter(v_count >= 1)
+viol3_total <- count_whole3(viol3)%>%
+  filter(v_count >= 1)
+viol4_total <- count_whole3(viol4)%>%
+  filter(v_count >= 1)
+viol5_total <- count_whole3(viol5)%>%
+  filter(v_count >= 1)
+viol6_total <- count_whole3(viol6)%>%
+  filter(v_count >= 1)
+viol7_total <- count_whole3(viol7)%>%
+  filter(v_count >= 1)
+viol8_total <- count_whole3(viol8)%>%
+  filter(v_count >= 1)
+viol9_total <- count_whole3(viol9)%>%
+  filter(v_count >= 1)
+viol10_total <- count_whole3(viol10)%>%
+  filter(v_count >= 1)
+
+# Now let's add in addresses
+viol1_total$address <- paste(viol1_total$building, viol1_total$street, viol1_total$zipcode)
+viol2_total$address <- paste(viol2_total$building, viol2_total$street, viol2_total$zipcode)
+viol3_total$address <- paste(viol3_total$building, viol3_total$street, viol3_total$zipcode)
+viol4_total$address <- paste(viol4_total$building, viol4_total$street, viol4_total$zipcode)
+viol5_total$address <- paste(viol5_total$building, viol5_total$street, viol5_total$zipcode)
+viol6_total$address <- paste(viol6_total$building, viol6_total$street, viol6_total$zipcode)
+viol7_total$address <- paste(viol7_total$building, viol7_total$street, viol7_total$zipcode)
+viol8_total$address <- paste(viol8_total$building, viol8_total$street, viol8_total$zipcode)
+viol9_total$address <- paste(viol9_total$building, viol9_total$street, viol9_total$zipcode)
+viol10_total$address <- paste(viol10_total$building, viol10_total$street, viol10_total$zipcode)
+```
+#### Now we can graph these individually
+```{r}
+v <- leaflet() %>%
+  addProviderTiles(providers$CartoDB.Positron) %>%
+  setView(lng = -74.0060, lat = 40.7128, zoom = 12)
+
+v1 <- v %>% addAwesomeMarkers(
+  data = viol1_total,
+  lng = ~longitude, 
+  lat = ~latitude,
+  clusterOptions = markerClusterOptions(),
+  popup = ~paste(
+    "<h4>", dba, "</h4>",
+    "<b>Address:</b> ", address, "<br>",
+    "<b>Cusisine Type:</b> ", cuisine.description, "<br>",
+    "<b>Violation:</b> ", violation.description, "<br>",
+    "<b>Total Violation Count:</b> ", v_count, "<br>"
+  ),
+  label = ~dba,
+  icon = awesomeIcons(
+    icon = 'info-circle',  # Valid FontAwesome icon
+    markerColor = ifelse(viol1_total$v_count >= 1 & viol1_total$v_count <= 2, "beige", 
+                          ifelse(
+                            viol1_total$v_count >= 3 & viol1_total$v_count <= 4, "orange",
+                            ifelse(
+                              viol1_total$v_count >= 5 & viol1_total$v_count <= 6, "red",
+                          "darkred"))),
+    library = 'fa'  # Use FontAwesome instead of glyphicon
+  )
+) %>% addLegend( 
+   'bottomright' , 
+   colors=c("beige","orange", "red", "darkred"),
+   labels=c('1-2','3-4', '5-6', '7+'),
+   title = "Total Number of Violations"
+)
+  
+v1
+```
+```{r}
+v2 <- leaflet() %>%
+  addProviderTiles(providers$CartoDB.Positron) %>%
+  setView(lng = -74.0060, lat = 40.7128, zoom = 12)
+
+v3 <- v2 %>% addAwesomeMarkers(
+  data = viol2_total,
+  lng = ~longitude, 
+  lat = ~latitude,
+  clusterOptions = markerClusterOptions(),
+  popup = ~paste(
+    "<h4>", dba, "</h4>",
+    "<b>Address:</b> ", address, "<br>",
+    "<b>Cusisine Type:</b> ", cuisine.description, "<br>",
+    "<b>Violation:</b> ", violation.description, "<br>",
+    "<b>Total Violation Count:</b> ", v_count, "<br>"
+  ),
+  label = ~dba,
+  icon = awesomeIcons(
+    icon = 'info-circle',  # Valid FontAwesome icon
+    markerColor = ifelse(viol2_total$v_count >= 1 & viol2_total$v_count <= 2, "beige", 
+                          ifelse(
+                            viol2_total$v_count >= 3 & viol2_total$v_count <= 4, "orange",
+                            ifelse(
+                              viol2_total$v_count >= 5 & viol2_total$v_count <= 6, "red",
+                          "darkred"))),
+    library = 'fa'  # Use FontAwesome instead of glyphicon
+  )
+) %>% addLegend( 
+   'bottomright' , 
+   colors=c("beige","orange", "red", "darkred"),
+   labels=c('1-2','3-4', '5-6', '7+'),
+   title = "Total Number of Violations"
+)
+  
+v3
+```
+```{r}
+v4 <- leaflet() %>%
+  addProviderTiles(providers$CartoDB.Positron) %>%
+  setView(lng = -74.0060, lat = 40.7128, zoom = 12)
+
+v5 <- v4 %>% addAwesomeMarkers(
+  data = viol3_total,
+  lng = ~longitude, 
+  lat = ~latitude,
+  clusterOptions = markerClusterOptions(),
+  popup = ~paste(
+    "<h4>", dba, "</h4>",
+    "<b>Address:</b> ", address, "<br>",
+    "<b>Cusisine Type:</b> ", cuisine.description, "<br>",
+    "<b>Violation:</b> ", violation.description, "<br>",
+    "<b>Total Violation Count:</b> ", v_count, "<br>"
+  ),
+  label = ~dba,
+  icon = awesomeIcons(
+    icon = 'info-circle',  # Valid FontAwesome icon
+    markerColor = ifelse(viol3_total$v_count >= 1 & viol3_total$v_count <= 2, "beige", 
+                          ifelse(
+                            viol3_total$v_count >= 3 & viol3_total$v_count <= 4, "orange",
+                            ifelse(
+                              viol3_total$v_count >= 5 & viol3_total$v_count <= 6, "red",
+                          "darkred"))),
+    library = 'fa'  # Use FontAwesome instead of glyphicon
+  )
+) %>% addLegend( 
+   'bottomright' , 
+   colors=c("beige","orange", "red", "darkred"),
+   labels=c('1-2','3-4', '5-6', '7+'),
+   title = "Total Number of Violations"
+)
+  
+v5
+```
+```{r}
+v6 <- leaflet() %>%
+  addProviderTiles(providers$CartoDB.Positron) %>%
+  setView(lng = -74.0060, lat = 40.7128, zoom = 12)
+
+v7 <- v6 %>% addAwesomeMarkers(
+  data = viol4_total,
+  lng = ~longitude, 
+  lat = ~latitude,
+  clusterOptions = markerClusterOptions(),
+  popup = ~paste(
+    "<h4>", dba, "</h4>",
+    "<b>Address:</b> ", address, "<br>",
+    "<b>Cusisine Type:</b> ", cuisine.description, "<br>",
+    "<b>Violation:</b> ", violation.description, "<br>",
+    "<b>Total Violation Count:</b> ", v_count, "<br>"
+  ),
+  label = ~dba,
+  icon = awesomeIcons(
+    icon = 'info-circle',  # Valid FontAwesome icon
+    markerColor = ifelse(viol4_total$v_count >= 1 & viol4_total$v_count <= 2, "beige", 
+                          ifelse(
+                            viol4_total$v_count >= 3 & viol4_total$v_count <= 4, "orange",
+                            ifelse(
+                              viol4_total$v_count >= 5 & viol4_total$v_count <= 6, "red",
+                          "darkred"))),
+    library = 'fa'  # Use FontAwesome instead of glyphicon
+  )
+) %>% addLegend( 
+   'bottomright' , 
+   colors=c("beige","orange", "red", "darkred"),
+   labels=c('1-2','3-4', '5-6', '7+'),
+   title = "Total Number of Violations"
+)
+  
+v7
+```
+```{r}
+v8 <- leaflet() %>%
+  addProviderTiles(providers$CartoDB.Positron) %>%
+  setView(lng = -74.0060, lat = 40.7128, zoom = 12)
+
+v9 <- v8 %>% addAwesomeMarkers(
+  data = viol5_total,
+  lng = ~longitude, 
+  lat = ~latitude,
+  clusterOptions = markerClusterOptions(),
+  popup = ~paste(
+    "<h4>", dba, "</h4>",
+    "<b>Address:</b> ", address, "<br>",
+    "<b>Cusisine Type:</b> ", cuisine.description, "<br>",
+    "<b>Violation:</b> ", violation.description, "<br>",
+    "<b>Total Violation Count:</b> ", v_count, "<br>"
+  ),
+  label = ~dba,
+  icon = awesomeIcons(
+    icon = 'info-circle',  # Valid FontAwesome icon
+    markerColor = ifelse(viol5_total$v_count >= 1 & viol5_total$v_count <= 2, "beige", 
+                          ifelse(
+                            viol5_total$v_count >= 3 & viol5_total$v_count <= 4, "orange",
+                            ifelse(
+                              viol5_total$v_count >= 5 & viol5_total$v_count <= 6, "red",
+                          "darkred"))),
+    library = 'fa'  # Use FontAwesome instead of glyphicon
+  )
+) %>% addLegend( 
+   'bottomright' , 
+   colors=c("beige","orange", "red", "darkred"),
+   labels=c('1-2','3-4', '5-6', '7+'),
+   title = "Total Number of Violations"
+)
+  
+v9
+```
+```{r}
+v10 <- leaflet() %>%
+  addProviderTiles(providers$CartoDB.Positron) %>%
+  setView(lng = -74.0060, lat = 40.7128, zoom = 12)
+
+v11 <- v10 %>% addAwesomeMarkers(
+  data = viol6_total,
+  lng = ~longitude, 
+  lat = ~latitude,
+  clusterOptions = markerClusterOptions(),
+  popup = ~paste(
+    "<h4>", dba, "</h4>",
+    "<b>Address:</b> ", address, "<br>",
+    "<b>Cusisine Type:</b> ", cuisine.description, "<br>",
+    "<b>Violation:</b> ", violation.description, "<br>",
+    "<b>Total Violation Count:</b> ", v_count, "<br>"
+  ),
+  label = ~dba,
+  icon = awesomeIcons(
+    icon = 'info-circle',  # Valid FontAwesome icon
+    markerColor = ifelse(viol6_total$v_count >= 1 & viol6_total$v_count <= 2, "beige", 
+                          ifelse(
+                            viol6_total$v_count >= 3 & viol6_total$v_count <= 4, "orange",
+                            ifelse(
+                              viol6_total$v_count >= 5 & viol6_total$v_count <= 6, "red",
+                          "darkred"))),
+    library = 'fa'  # Use FontAwesome instead of glyphicon
+  )
+) %>% addLegend( 
+   'bottomright' , 
+   colors=c("beige","orange", "red", "darkred"),
+   labels=c('1-2','3-4', '5-6', '7+'),
+   title = "Total Number of Violations"
+)
+  
+v11
+```
+```{r}
+v12 <- leaflet() %>%
+  addProviderTiles(providers$CartoDB.Positron) %>%
+  setView(lng = -74.0060, lat = 40.7128, zoom = 12)
+
+v13 <- v12 %>% addAwesomeMarkers(
+  data = viol7_total,
+  lng = ~longitude, 
+  lat = ~latitude,
+  clusterOptions = markerClusterOptions(),
+  popup = ~paste(
+    "<h4>", dba, "</h4>",
+    "<b>Address:</b> ", address, "<br>",
+    "<b>Cusisine Type:</b> ", cuisine.description, "<br>",
+    "<b>Violation:</b> ", violation.description, "<br>",
+    "<b>Total Violation Count:</b> ", v_count, "<br>"
+  ),
+  label = ~dba,
+  icon = awesomeIcons(
+    icon = 'info-circle',  # Valid FontAwesome icon
+    markerColor = ifelse(viol7_total$v_count >= 1 & viol7_total$v_count <= 2, "beige", 
+                          ifelse(
+                            viol7_total$v_count >= 3 & viol7_total$v_count <= 4, "orange",
+                            ifelse(
+                              viol7_total$v_count >= 5 & viol7_total$v_count <= 6, "red",
+                          "darkred"))),
+    library = 'fa'  # Use FontAwesome instead of glyphicon
+  )
+) %>% addLegend( 
+   'bottomright' , 
+   colors=c("beige","orange", "red", "darkred"),
+   labels=c('1-2','3-4', '5-6', '7+'),
+   title = "Total Number of Violations"
+)
+  
+v13
+```
+```{r}
+v14 <- leaflet() %>%
+  addProviderTiles(providers$CartoDB.Positron) %>%
+  setView(lng = -74.0060, lat = 40.7128, zoom = 12)
+
+v15 <- v14 %>% addAwesomeMarkers(
+  data = viol8_total,
+  lng = ~longitude, 
+  lat = ~latitude,
+  clusterOptions = markerClusterOptions(),
+  popup = ~paste(
+    "<h4>", dba, "</h4>",
+    "<b>Address:</b> ", address, "<br>",
+    "<b>Cusisine Type:</b> ", cuisine.description, "<br>",
+    "<b>Violation:</b> ", violation.description, "<br>",
+    "<b>Total Violation Count:</b> ", v_count, "<br>"
+  ),
+  label = ~dba,
+  icon = awesomeIcons(
+    icon = 'info-circle',  # Valid FontAwesome icon
+    markerColor = ifelse(viol8_total$v_count >= 1 & viol8_total$v_count <= 2, "beige", 
+                          ifelse(
+                            viol8_total$v_count >= 3 & viol8_total$v_count <= 4, "orange",
+                            ifelse(
+                              viol8_total$v_count >= 5 & viol8_total$v_count <= 6, "red",
+                          "darkred"))),
+    library = 'fa'  # Use FontAwesome instead of glyphicon
+  )
+) %>% addLegend( 
+   'bottomright' , 
+   colors=c("beige","orange", "red", "darkred"),
+   labels=c('1-2','3-4', '5-6', '7+'),
+   title = "Total Number of Violations"
+)
+  
+v15
+```
+```{r}
+v16 <- leaflet() %>%
+  addProviderTiles(providers$CartoDB.Positron) %>%
+  setView(lng = -74.0060, lat = 40.7128, zoom = 12)
+
+v17 <- v16 %>% addAwesomeMarkers(
+  data = viol9_total,
+  lng = ~longitude, 
+  lat = ~latitude,
+  clusterOptions = markerClusterOptions(),
+  popup = ~paste(
+    "<h4>", dba, "</h4>",
+    "<b>Address:</b> ", address, "<br>",
+    "<b>Cusisine Type:</b> ", cuisine.description, "<br>",
+    "<b>Violation:</b> ", violation.description, "<br>",
+    "<b>Total Violation Count:</b> ", v_count, "<br>"
+  ),
+  label = ~dba,
+  icon = awesomeIcons(
+    icon = 'info-circle',  # Valid FontAwesome icon
+    markerColor = ifelse(viol9_total$v_count >= 1 & viol9_total$v_count <= 2, "beige", 
+                          ifelse(
+                            viol9_total$v_count >= 3 & viol9_total$v_count <= 4, "orange",
+                            ifelse(
+                              viol9_total$v_count >= 5 & viol9_total$v_count <= 6, "red",
+                          "darkred"))),
+    library = 'fa'  # Use FontAwesome instead of glyphicon
+  )
+) %>% addLegend( 
+   'bottomright' , 
+   colors=c("beige","orange", "red", "darkred"),
+   labels=c('1-2','3-4', '5-6', '7+'),
+   title = "Total Number of Violations"
+)
+  
+v17
+```
+```{r}
+v18 <- leaflet() %>%
+  addProviderTiles(providers$CartoDB.Positron) %>%
+  setView(lng = -74.0060, lat = 40.7128, zoom = 12)
+
+v19 <- v18 %>% addAwesomeMarkers(
+  data = viol10_total,
+  lng = ~longitude, 
+  lat = ~latitude,
+  clusterOptions = markerClusterOptions(),
+  popup = ~paste(
+    "<h4>", dba, "</h4>",
+    "<b>Address:</b> ", address, "<br>",
+    "<b>Cusisine Type:</b> ", cuisine.description, "<br>",
+    "<b>Violation:</b> ", violation.description, "<br>",
+    "<b>Total Violation Count:</b> ", v_count, "<br>"
+  ),
+  label = ~dba,
+  icon = awesomeIcons(
+    icon = 'info-circle',  # Valid FontAwesome icon
+    markerColor = ifelse(viol10_total$v_count >= 1 & viol10_total$v_count <= 2, "beige", 
+                          ifelse(
+                            viol10_total$v_count >= 3 & viol10_total$v_count <= 4, "orange",
+                            ifelse(
+                              viol10_total$v_count >= 5 & viol10_total$v_count <= 6, "red",
+                          "darkred"))),
+    library = 'fa'  # Use FontAwesome instead of glyphicon
+  )
+) %>% addLegend( 
+   'bottomright' , 
+   colors=c("beige","orange", "red", "darkred"),
+   labels=c('1-2','3-4', '5-6', '7+'),
+   title = "Total Number of Violations"
+)
+  
+v19
+```
+
+
+```{r}
+# Line Plots 
+
+library(ggplot2)
+library(dplyr)
+library(plotly)
+library(lubridate) 
+
+hcv$inspection.date <- as.Date(hcv$inspection.date)
+hcv$year <- year(hcv$inspection.date)
+
+current_year <- max(hcv$year, na.rm = TRUE)
+last_5_years <- current_year - 4
+
+hcv_recent_5 <- hcv %>%
+  filter(year >= last_5_years)
+
+hcv_borough_year <- hcv_recent_5 %>%
+  group_by(boro, year) %>%
+  summarise(violation_count = n()) %>%
+  ungroup()
+
+colors_borough <- c("Manhattan" = "#6D9AC6",  
+                    "Brooklyn" = "#F0A88C",  
+                    "Queens" = "#A1D6B9", 
+                    "Bronx" = "#F296B3",   
+                    "Staten Island" = "#C89BCC")
+
+# line plot
+plot_violations_by_borough <- ggplot(hcv_borough_year, aes(x = year, y = violation_count, color = boro)) +
+  geom_line(size = 1.2) +
+  geom_point(size = 3, shape = 21, fill = "white") +
+  scale_color_manual(values = colors_borough) +
+  labs(
+    title = "Health Code Violations by Borough (Last 5 Years)",
+    x = "Year",
+    y = "Number of Violations",  # Proper y-axis label
+    color = "Borough"
+  ) +
+  scale_y_continuous(
+    breaks = seq(0, max(hcv_borough_year$violation_count), by = 5000) 
+  ) +
+  theme_minimal(base_size = 14) + 
+  theme(
+    plot.title = element_text(size = 18, face = "bold", color = "#333333"),
+    axis.title = element_text(size = 12, face = "light"),
+    axis.text = element_text(size = 10, color = "#555555"),
+    legend.title = element_text(size = 12, face = "light"),
+    legend.text = element_text(size = 10),
+    panel.grid.major = element_line(color = "#DDDDDD", size = 0.5), 
+    panel.grid.minor = element_line(color = "#DDDDDD", size = 0.25) 
+  )
+
+# plotly 
+interactive_plot_borough_year <- ggplotly(plot_violations_by_borough) %>%
+  layout(
+    xaxis = list(
+      showticklabels = TRUE
+    ),
+    yaxis = list(
+      fixedrange = FALSE # zooming 
+    ),
+    hoverlabel = list(
+      bgcolor = "white", 
+      font = list(color = "black") 
+    )
+  ) %>%
+  add_trace(
+    text = ~paste(
+      "<b>Year:</b> ", year, "<br>", 
+      "<b>Borough:</b> ", toupper(boro), "<br>", 
+      "<b>Total Violation Count:</b> ", violation_count, "<br>"  
+    ),
+    hoverinfo = "text"
+  )
+
+interactive_plot_borough_year
+
+```
+
+```{r}
+
+# HEALTH CODE VIOLATIONS BY BOROUGH (LAST 5 YEARS BY MONTH)
+hcv_recent$inspection.date <- as.Date(hcv_recent$inspection.date)
+
+current_year <- max(hcv_recent$inspection.date)
+last_5_years <- current_year - years(5)
+
+hcv_recent_5 <- hcv_recent %>%
+  filter(inspection.date >= last_5_years)
+
+# year and month from inspection.date
+hcv_recent_5 <- hcv_recent_5 %>%
+  mutate(year = format(inspection.date, "%Y"),
+         month = format(inspection.date, "%m"))
+
+hcv_borough_month <- hcv_recent_5 %>%
+  group_by(boro, year, month) %>%
+  summarise(violation_count = n()) %>%
+  ungroup()
+
+colors_borough <- c("Manhattan" = "#A1C6EA", 
+                    "Brooklyn" = "#F1C6B5", 
+                    "Queens" = "#C1E5D7", 
+                    "Bronx" = "#F5B9D8", 
+                    "Staten Island" = "#D6AEDD")
+
+# line plot
+plot_violations_by_borough <- ggplot(hcv_borough_month, aes(x = interaction(year, month), y = violation_count, color = boro, group = boro)) +
+  geom_line(size = 0.8) +  
+  geom_point(size = 3, shape = 21, fill = "white") +  
+  scale_color_manual(values = colors_borough) +
+  labs(
+    title = "Health Code Violations by Borough (Last 5 Years)",
+    x = "Month",  # Label x-axis as 'Month'
+    y = "Number of Violations",   
+    color = "Borough"
+  ) +
+  scale_y_continuous(
+    breaks = seq(0, max(hcv_borough_month$violation_count), by = 5000)
+  ) +
+  theme_minimal(base_size = 14) +   
+  theme(
+    plot.title = element_text(size = 14, color = "#333333"),
+    axis.title = element_text(size = 12, face = "light"),
+    axis.text = element_text(size = 10, color = "#555555"),
+    legend.title = element_text(size = 12, face = "light"),
+    legend.text = element_text(size = 10),
+    panel.grid.major = element_blank(),   
+    panel.grid.minor = element_blank(),   
+    axis.text.x = element_blank()  # 
+  )
+
+# plotly
+interactive_plot_borough2 <- ggplotly(plot_violations_by_borough) %>%
+  layout(
+    xaxis = list(
+      showticklabels = FALSE   
+    ),
+    yaxis = list(
+      fixedrange = FALSE  
+    ),
+    hoverlabel = list(
+      bgcolor = "white",  
+      font = list(color = "black")  
+    ),
+    hoverinfo = "text"   
+  )
+
+interactive_plot_borough2
+
+```
+
+```{r}
+
+# aggregate data by borough and income range
+merged_data_count <- merged_data %>%
+  group_by(boro, avg_income) %>%
+  summarise(total_violations = n(), .groups = 'drop')
+
+# create income ranges 
+merged_data_count$income_group <- cut(merged_data_count$avg_income, 
+                                      breaks = seq(0, max(merged_data_count$avg_income), by = 50000), 
+                                      include.lowest = TRUE, 
+                                      labels = paste0("$", seq(0, max(merged_data_count$avg_income), by = 50000)[-1], "k"))
+
+# average number of violations per income group
+agg_data <- merged_data_count %>%
+  group_by(boro, income_group) %>%
+  summarise(avg_violations = mean(total_violations), .groups = 'drop')
+
+head(agg_data)
+
+# line plot: Income vs. Average Health Code Violations by Borough 
+plot_ly(agg_data, x = ~income_group, y = ~avg_violations, color = ~boro, 
+             type = 'scatter', mode = 'lines+markers', 
+             line = list(width = 2), 
+             marker = list(size = 6)) %>%
+        layout(title = "Income vs. Average Health Code Violations by Borough",
+               xaxis = list(title = "Income Group", tickangle = -45),
+               yaxis = list(title = "Average Number of Violations"),
+               legend = list(title = list(text = 'Borough')),
+               hovermode = 'closest') 
+
+
+```
+
