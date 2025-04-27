@@ -8,13 +8,41 @@ output: html_document
 ```{r}
 # Health code violations
 file_path <- "~/Desktop/Data_Viz/hcvyear.csv"
-hcv <- read.csv(file_path)
+hcv <- read.csv("hcvyear.csv")
 
 # Income
+library(dplyr)
 
+nyczips <- read.csv("nyc-zip-codes.csv")
+dta <- read.csv("22zpallagi.csv")
+
+# filter dta to only rows with zip code in the list of NYC Zip Codes
+dta_nyc <- dta[dta$zipcode %in% nyczips$ZipCode, ]
+head(dta_nyc)
+
+income_filtered <- dta_nyc %>%
+  select(STATE, zipcode, agi_stub, A00100, A02650)
+
+
+# average AGI and income per ZIP code
+avg_income <- dta_nyc %>%
+  group_by(zipcode) %>%
+  summarise(
+    avg_AGI = mean(A00100, na.rm = TRUE),
+    avg_income = mean(A02650, na.rm = TRUE)
+  )
+
+head(avg_income)
+
+names(avg_income)
+names(hcv)
 
 # Merging
+
+
+
 ```
+
 ### Now let's extract the counts per restaurant listed
 ```{r}
 library(dplyr)
@@ -73,19 +101,24 @@ top10_stat
 ```
 ### Let's pull reviews from some places in Brooklyn
 ```{r}
-top10_brook
+top10_bronx 
+top10_queen
 ```
+
 ```{r}
 library(googleway)
 
 # master wok, arch diner are closed (top 1 and 2)
 # let's run this on the other 8 though
 # First let's just pull out the dba and latitude and longitude into single dataframe & remove first two rows
-top10_brook_loc <- tail(top10_brook[c('dba', 'latitude', 'longitude')], 8)
+top10_bronx_loc <- tail(top10_bronx[c('dba', 'latitude', 'longitude')], 10)
+top10_queen_loc <- tail(top10_queen[c('dba', 'latitude', 'longitude')], 9)
 ```
-```{r}
-key <- 'insert key'
 
+```{r}
+key <- 'AIzaSyCgH6fJTLtNJluE4X9_qluiQB5DTaxIMlo'
+
+# bronx 
 get_reviews <- function(df, key){
   latitude <- as.numeric(df$latitude)
   longitude <- as.numeric(df$longitude)
@@ -107,16 +140,58 @@ get_reviews <- function(df, key){
   return(reviews)
 }
 
-brook_revs <- bind_rows(apply(top10_brook_loc, 1, function(row){ # run function on data frame of top 10(ish)
+bronx_revs <- bind_rows(apply(top10_bronx_loc, 1, function(row){ # run function on data frame of top 10(ish)
   row <- as.list(row) # run it on the rows individually (we need to convert this to list to work)
   reviews <- get_reviews(row, key) # run function with personal key
   
   return(reviews)
 }))
 
-write.csv(brook_revs,"~/Desktop/Data_Viz/brook_revs.csv", row.names = FALSE)
+write.csv(bronx_revs,"/Users/natashaahmed/Desktop/Data Viz/final project/bronx_revs.csv", row.names = FALSE)
+
+
+# queens 
+get_reviews <- function(df, key){
+  latitude <- as.numeric(df$latitude)
+  longitude <- as.numeric(df$longitude)
+  
+  results <- google_places(search_string = df$dba, 
+                           location = c(latitude, longitude),
+                           key = key) # search up location and grab information it
+  
+  details <- google_place_details(place_id = results$results[1, "place_id"],
+                                   key = key) # grab more details based on the place_id generated prior
+  
+  reviews <- data.frame(details$result$reviews) # pull out 5 reviews per location
+  
+  if(nrow(reviews) != 0){ 
+    reviews$restaurant <- df$dba # add in restaurant name if reviews are present
+    reviews$rating <- details$result$rating # Add column for main average rating of the restaurant (not ratings provided by the reviewers)
+  }
+  
+  return(reviews)
+}
+
+queen_revs <- bind_rows(apply(top10_queen_loc, 1, function(row){ 
+  row <- as.list(row) 
+  reviews <- tryCatch({
+    get_reviews(row, key)
+  }, error = function(e) {
+    return(NULL) # if there's an error (like no results), return NULL
+  })
+  
+  if (!is.null(reviews) && nrow(reviews) > 0) {
+    return(reviews)
+  } else {
+    return(NULL)
+  }
+}))
+
+write.csv(queen_revs,"/Users/natashaahmed/Desktop/Data Viz/final project/queens_revs.csv", row.names = FALSE)
 
 # Unable to get reviews for Grace Caribbean Cuisine -> total of 35 reviews & ratings
+# unable to get reviews for prima pasta & cafe, queens (temp closed)
+
 ```
 
 ### Let's create maps for the top 500 restaurants with the most violations across boroughs and all of NYC
@@ -134,6 +209,7 @@ hcv_queen$address <- paste(hcv_queen$building, hcv_queen$street, hcv_queen$zipco
 
 hcv_bronx$address <- paste(hcv_bronx$building, hcv_bronx$street, hcv_bronx$zipcode)
 ```
+
 ```{r}
 # To avoid crashing, let's limit it to 500 restaurants, so we'll create new dataframes similar to before
 top500_man <- hcv_man %>%
@@ -160,6 +236,7 @@ top500_total <- hcv_total %>%
   arrange(desc(hcv_count)) %>%
   slice(1:500)
 ```
+
 ```{r}
 library(leaflet)
 library(htmltools)
@@ -852,4 +929,188 @@ v19
 
 
 
+```{r}
+# Line Plots 
+
+library(ggplot2)
+library(dplyr)
+library(plotly)
+
+# HEALTH CODE VIOLATIONS BY BOROUGH (LAST 5 YEARS BY YEAR)
+# filter data to the last 5 years
+current_year <- max(hcv_recent$year)
+last_5_years <- current_year - 5
+
+hcv_recent_5 <- hcv_recent %>%
+  filter(year >= last_5_years)
+
+hcv_borough_year <- hcv_recent_5 %>%
+  group_by(boro, year) %>%
+  summarise(violation_count = n()) %>%
+  ungroup()
+
+colors_borough <- c("Manhattan" = "#6D9AC6",  # Darker blue
+                    "Brooklyn" = "#F0A88C",  # Darker peach
+                    "Queens" = "#A1D6B9",  # Darker mint green
+                    "Bronx" = "#F296B3",  # Darker pink
+                    "Staten Island" = "#C89BCC")  # Darker purple
+
+# line plot
+plot_violations_by_borough <- ggplot(hcv_borough_year, aes(x = year, y = violation_count, color = boro)) +
+  geom_line(size = 1.2) +
+  geom_point(size = 3, shape = 21, fill = "white") +
+  scale_color_manual(values = colors_borough) +
+  labs(
+    title = "Health Code Violations by Borough (Last 5 Years)",
+    x = "Year",
+    y = "Number of Violations",  # Proper y-axis label
+    color = "Borough"
+  ) +
+  scale_y_continuous(
+    breaks = seq(0, max(hcv_borough_year$violation_count), by = 5000) 
+  ) +
+  theme_minimal(base_size = 14) + 
+  theme(
+    plot.title = element_text(size = 18, face = "bold", color = "#333333"),
+    axis.title = element_text(size = 12, face = "light"),
+    axis.text = element_text(size = 10, color = "#555555"),
+    legend.title = element_text(size = 12, face = "light"),
+    legend.text = element_text(size = 10),
+    panel.grid.major = element_line(color = "#DDDDDD", size = 0.5), 
+    panel.grid.minor = element_line(color = "#DDDDDD", size = 0.25) 
+  )
+
+# plotly 
+interactive_plot_borough_year <- ggplotly(plot_violations_by_borough) %>%
+  layout(
+    xaxis = list(
+      showticklabels = TRUE
+    ),
+    yaxis = list(
+      fixedrange = FALSE # zooming 
+    ),
+    hoverlabel = list(
+      bgcolor = "white", 
+      font = list(color = "black") 
+    )
+  ) %>%
+  add_trace(
+    text = ~paste(
+      "<b>Year:</b> ", year, "<br>", 
+      "<b>Borough:</b> ", toupper(boro), "<br>", 
+      "<b>Total Violation Count:</b> ", violation_count, "<br>"  
+    ),
+    hoverinfo = "text"
+  )
+
+interactive_plot_borough_year
+
+```
+
+```{r}
+
+# HEALTH CODE VIOLATIONS BY BOROUGH (LAST 5 YEARS BY MONTH)
+hcv_recent$inspection.date <- as.Date(hcv_recent$inspection.date)
+
+current_year <- max(hcv_recent$inspection.date)
+last_5_years <- current_year - years(5)
+
+hcv_recent_5 <- hcv_recent %>%
+  filter(inspection.date >= last_5_years)
+
+# year and month from inspection.date
+hcv_recent_5 <- hcv_recent_5 %>%
+  mutate(year = format(inspection.date, "%Y"),
+         month = format(inspection.date, "%m"))
+
+hcv_borough_month <- hcv_recent_5 %>%
+  group_by(boro, year, month) %>%
+  summarise(violation_count = n()) %>%
+  ungroup()
+
+colors_borough <- c("Manhattan" = "#A1C6EA", 
+                    "Brooklyn" = "#F1C6B5", 
+                    "Queens" = "#C1E5D7", 
+                    "Bronx" = "#F5B9D8", 
+                    "Staten Island" = "#D6AEDD")
+
+# line plot
+plot_violations_by_borough <- ggplot(hcv_borough_month, aes(x = interaction(year, month), y = violation_count, color = boro, group = boro)) +
+  geom_line(size = 0.8) +  
+  geom_point(size = 3, shape = 21, fill = "white") +  
+  scale_color_manual(values = colors_borough) +
+  labs(
+    title = "Health Code Violations by Borough (Last 5 Years)",
+    x = "Month",  # Label x-axis as 'Month'
+    y = "Number of Violations",   
+    color = "Borough"
+  ) +
+  scale_y_continuous(
+    breaks = seq(0, max(hcv_borough_month$violation_count), by = 5000)
+  ) +
+  theme_minimal(base_size = 14) +   
+  theme(
+    plot.title = element_text(size = 14, color = "#333333"),
+    axis.title = element_text(size = 12, face = "light"),
+    axis.text = element_text(size = 10, color = "#555555"),
+    legend.title = element_text(size = 12, face = "light"),
+    legend.text = element_text(size = 10),
+    panel.grid.major = element_blank(),   
+    panel.grid.minor = element_blank(),   
+    axis.text.x = element_blank()  # 
+  )
+
+# plotly
+interactive_plot_borough2 <- ggplotly(plot_violations_by_borough) %>%
+  layout(
+    xaxis = list(
+      showticklabels = FALSE   
+    ),
+    yaxis = list(
+      fixedrange = FALSE  
+    ),
+    hoverlabel = list(
+      bgcolor = "white",  
+      font = list(color = "black")  
+    ),
+    hoverinfo = "text"   
+  )
+
+interactive_plot_borough2
+
+```
+
+```{r}
+
+# aggregate data by borough and income range
+merged_data_count <- merged_data %>%
+  group_by(boro, avg_income) %>%
+  summarise(total_violations = n(), .groups = 'drop')
+
+# create income ranges 
+merged_data_count$income_group <- cut(merged_data_count$avg_income, 
+                                      breaks = seq(0, max(merged_data_count$avg_income), by = 50000), 
+                                      include.lowest = TRUE, 
+                                      labels = paste0("$", seq(0, max(merged_data_count$avg_income), by = 50000)[-1], "k"))
+
+# average number of violations per income group
+agg_data <- merged_data_count %>%
+  group_by(boro, income_group) %>%
+  summarise(avg_violations = mean(total_violations), .groups = 'drop')
+
+head(agg_data)
+
+# line plot: Income vs. Average Health Code Violations by Borough 
+plot_ly(agg_data, x = ~income_group, y = ~avg_violations, color = ~boro, 
+             type = 'scatter', mode = 'lines+markers', 
+             line = list(width = 2), 
+             marker = list(size = 6)) %>%
+        layout(title = "Income vs. Average Health Code Violations by Borough",
+               xaxis = list(title = "Income Group", tickangle = -45),
+               yaxis = list(title = "Average Number of Violations"),
+               legend = list(title = list(text = 'Borough')),
+               hovermode = 'closest')  # Shows detailed info on hover
+
+
+```
 
