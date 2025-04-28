@@ -1,4 +1,4 @@
-# New York City Health Code Violations
+# ⚠️ New York City Health Code Violations
 ## Project Overview
 This project is an exploration of patterns in restaurant health code violations across New York City. It aims to look at a few key aspects of these violations in tandem with reviews of these restaurants to see whether or not health code violations impact customer experiences. Using analysis of NYC restaurant health code violation and government data and natural language processing of restaurant review data, our team investigated the relationships between restaurant violations, customer experience, and geographical region over time.
 ### Our Motivating Questions
