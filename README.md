@@ -12,14 +12,14 @@ This project is an exploration of patterns in restaurant health code violations 
 
 📈 Socioeconomic factors: How do health code violations correlate with socioeconomic factors, like income, of different regional areas?
 
-### Technology & Methods
+## Technology & Methods
 We visualize our project using Shiny which you can access here: 
 
 Within this website you will find a series of static and interactive graphs and maps that help try to tackle some of our motivating questions above.
-### Note
+### Notes
 All the visualizations will take some time to load (~1 minute at most).
 
-### Team
+## Team
 - Katherine Lin
 - Humaira Ahmed
 - Juna Kawai-Yue
