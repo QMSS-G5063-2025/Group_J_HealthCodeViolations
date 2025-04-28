@@ -127,24 +127,24 @@ ui <- navbarPage(
                           h4("Project Overview"),
                           tags$div(class = "custom-text",
                                   p("Our team was interested in investigating patterns in restaurant health code violations across New York City. We wanted to look at a few key aspects of these violations in tandem with reviews of these restaurants to see whether or not health code violations impact customer experiences but also what general trends there are within the city regarding these violations."),
-                                  p("Within this website, you will find maps, barplots, word clouds, and line plots that allows you to explore trends in the number of violations across NYC and between boroughs, types of violations, and the customer experience and how these factors relate to socioeconomic makeups of the neighborhoods."))),
+                                  p("Within this website, you will find maps, barplots, word clouds, and line plots that allow you to explore trends in the number of violations across NYC and between boroughs, types of violations, and the customer experience and how these factors relate to socioeconomic makeups of the neighborhoods."))),
                  tags$div(class = "custom-container",
                           h4("Within this website you will find:"),
                           tags$div(class = "custom-row",
                                    tags$div(class = "col-md-4 feature",
                                             tags$i(class = "fas fa-magnifying-glass-chart"),
                                             h4("Overall Trends"),
-                                            h5("Visualizations of health code violation trends across NYC.")
+                                            h5("Visualizations of health code violation trends across NYC")
                                    ),
                                    tags$div(class = "col-md-4 feature",
                                             tags$i(class = "fas fa-triangle-exclamation"),
                                             h4("Violations"),
-                                            h5("Deep dive into specific health code violations.")
+                                            h5("Deep dive into specific health code violations")
                                    ),
                                    tags$div(class = "col-md-4 feature",
                                             tags$i(class = "fas fa-quote-right"),
                                             h4("Google Reviews"),
-                                            h5("Analysis of recent Google Reviews for restaurants with high numbers of violations.")
+                                            h5("Analysis of recent Google Reviews for restaurants with high numbers of violations")
                                    )
                           )
                  ),
