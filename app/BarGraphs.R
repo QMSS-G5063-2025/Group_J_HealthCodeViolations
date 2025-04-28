@@ -24,9 +24,10 @@ borough_violations_plot_func <- function(data) {
     ))) +
     scale_fill_manual(values = colors_borough) +
     coord_flip() +
-    xlab("Borough") + ylab("Number of violations") +
-    guides(fill = guide_legend(title = "Borough")) +
+    xlab("Borough") + ylab("Number of Violations") +
+    guides(fill = FALSE) +
     theme_minimal(base_size = 14) +
+    labs(title = "Number of Health Code Violations by Borough") +
     theme(
           plot.background = element_rect(fill = "#f8f9fa"),
           axis.title = element_text(size = 11, face = "plain"),
@@ -36,7 +37,8 @@ borough_violations_plot_func <- function(data) {
           panel.grid.major = element_line(color = "#DDDDDD", size = 0.5), 
           panel.grid.minor = element_line(color = "#DDDDDD", size = 0.25),
           axis.text.x = element_text(),
-          axis.text.y = element_text())
+          axis.text.y = element_text(),
+          plot.title = element_text(size = 13))
   
   graph <- ggplotly(graphtemp, tooltip = "text") %>%
     layout(
@@ -98,12 +100,13 @@ borough_common_violations_plot_func <- function(data) {
   )) +
     scale_fill_manual(values = colors_borough) +
     geom_col() +
-    facet_grid(. ~ boro) +
+    facet_grid(~ boro) +
     xlab("Violation Type") + 
     ylab("Number of Violations") + 
     guides(fill = guide_legend(title = "Borough")) +
     theme_minimal(base_size = 14) +
     theme(
+      panel.spacing = unit(0.2, "lines"),
       plot.background = element_rect(fill = "#f8f9fa"),
       axis.title = element_text(size = 11, face = "plain"),
       axis.text = element_text(size = 10, color = "#555555"),
@@ -153,16 +156,16 @@ common_violations_func <- function(data) {
 # plotting from last function
 common_violations_plot_func <- function(data) {
   commonviolationsdata <- common_violations_func(data)
-  # colors_violations <- c("02B" = "#6D9AC6",  
-  #                     "02G" = "#F0A88C",  
-  #                     "04A" = "#A1D6B9", 
-  #                     "04L" = "#F296B3",   
-  #                     "04N" = "#C89BCC", 
-  #                     "06C" = "insert color here", 
-  #                     "06D" = "insert color here",
-  #                     "08A" = "insert color here",
-  #                     "10B" = "insert color here", 
-  #                     "10F" = "insert color here")
+   colors_violations <- c("02B" = "#6D9AC6",  
+                       "02G" = "#F0A88C",  
+                       "04A" = "#A1D6B9", 
+                       "04L" = "#F296B3",   
+                       "04N" = "#C89BCC", 
+                       "06C" = "#F4A261", 
+                       "06D" = "#FF8F85",
+                       "08A" = "#19758A",
+                       "10B" = "#B6C8E2", 
+                       "10F" = "#B690A1")
   
   plot <- ggplot(commonviolationsdata, aes(
     x = reorder(violation.code, violation.code.count), 
@@ -174,7 +177,7 @@ common_violations_plot_func <- function(data) {
       "<br>Number of Violations:", violation.code.count
     )
   )) +
-    # scale_fill_manual(values = colors_violations) +
+    scale_fill_manual(values = colors_violations) +
     geom_col() +
     coord_flip() +
     xlab("Violation Type") + 
@@ -208,10 +211,6 @@ common_violations_plot_func <- function(data) {
   return(plot2)
 }
 
-
-
-
-
 # 4. MOST COMMON CRITICAL VIOLATIONS (OVERALL) (4/27)
 
 
@@ -235,16 +234,16 @@ critical_violations_func <- function(data) {
 # plotting from last function
 critical_violations_plot_func <- function(data) {
   criticalviolationsdata <- critical_violations_func(data)
-  # colors_violations <- c("02B" = "#6D9AC6",  
-  #                     "02G" = "#F0A88C",  
-  #                     "04A" = "#A1D6B9", 
-  #                     "04H" = "#F296B3",   
-  #                     "04L" = "#C89BCC", 
-  #                     "04M" = "insert color here", 
-  #                     "04N" = "insert color here",
-  #                     "06A" = "insert color here",
-  #                     "06C" = "insert color here", 
-  #                     "06D" = "insert color here")
+  colors_violations <- c("02B" = "#6D9AC6",  
+                       "02G" = "#F0A88C",  
+                       "04A" = "#A1D6B9", 
+                       "04H" = "#F296B3",   
+                       "04L" = "#C89BCC", 
+                       "04M" = "#F4A261", 
+                       "04N" = "#FF8F85",
+                       "06A" = "#19758A",
+                       "06C" = "#B6C8E2", 
+                       "06D" = "#B690A1")
   
   plot <- ggplot(criticalviolationsdata, aes(
     x = reorder(violation.code, violation.code.count), 
@@ -256,7 +255,7 @@ critical_violations_plot_func <- function(data) {
       "<br>Number of Violations:", violation.code.count
     )
   )) +
-    # scale_fill_manual(values = colors_violations) +
+    scale_fill_manual(values = colors_violations) +
     geom_col() +
     coord_flip() +
     xlab("Critical Violation Type") + 
@@ -290,6 +289,17 @@ critical_violations_plot_func <- function(data) {
   return(plot2)
 }
 
+select_viol <- function(data, type){
+  if(type=="overall"){
+    viol_graph <- common_violations_plot_func(data)
+  }
+  
+  if(type=="crit"){
+    viol_graph <- critical_violations_plot_func(data)
+  }
+  return(viol_graph)
+}
+
 
 # 5. TOP 10 MOST COMMON CRITICAL VIOLATIONS PER BOROUGH (4/27)
 crit_borough_violations_func <- function(data) {
@@ -307,8 +317,6 @@ crit_borough_violations_func <- function(data) {
   
   return(temp)
 }
-
-
 
 # plotting from last function 
 crit_borough_violations_plot_func <- function(data) {
@@ -364,7 +372,16 @@ crit_borough_violations_plot_func <- function(data) {
   return(plot2)
 }
 
-
+select_viol_boro <- function(data, type){
+  if(type=="overall"){
+    viol_graph_boro <- borough_common_violations_plot_func(data)
+  }
+  
+  if(type=="crit"){
+    viol_graph_boro <- crit_borough_violations_plot_func(data)
+  }
+  return(viol_graph_boro)
+}
 
 
 
@@ -393,8 +410,8 @@ borough_restaurants_plot_func <- function(data) {
     ))) +
     scale_fill_manual(values = colors_borough) +
     coord_flip() +
-    xlab("Borough") + ylab("Number of restaurants") +
-    guides(fill = guide_legend(title = "Borough")) + # getting legend 
+    xlab("Borough") + ylab("Number of Restaurants") +
+    guides(fill = FALSE) + # getting legend 
     theme_minimal(base_size = 14) +
     theme(
       plot.background = element_rect(fill = "#f8f9fa"),

@@ -186,3 +186,50 @@ plot_violations_by_borough2 <- function(data){
     )
   return(interactive_plot_borough2)
 }
+
+merge_clean <- function(data1, data2){
+  merged_data <- merge(data1, data2, by = "zipcode", all.x = TRUE)
+  
+  # aggregate data by borough and income range
+  merged_data_count <- merged_data %>%
+    group_by(boro, avg_income) %>%
+    summarise(total_violations = n(), .groups = 'drop')
+  
+  # create income ranges 
+  merged_data_count$income_group <- cut(merged_data_count$avg_income, 
+                                        breaks = seq(0, max(merged_data_count$avg_income, na.rm = TRUE), by = 50000), 
+                                        include.lowest = TRUE, 
+                                        labels = paste0("$", seq(0, max(merged_data_count$avg_income, na.rm = TRUE), by = 50000)[-1], "k"))
+  
+  # average number of violations per income group
+  agg_data <- merged_data_count %>%
+    group_by(boro, income_group) %>%
+    summarise(avg_violations = mean(total_violations), .groups = 'drop')
+  
+  return(agg_data)
+}
+
+plot_income <- function(data1, data2){
+  agg_data <- merge_clean(data1, data2)
+  
+  # line plot: Income vs. Average Health Code Violations by Borough 
+  income_plot <- plot_ly(agg_data, x = ~income_group, y = ~avg_violations, color = ~boro, 
+          type = 'scatter', mode = 'lines+markers', 
+          line = list(width = 2), 
+          marker = list(size = 6)) %>%
+    layout(
+           title = list(
+             text = "Income vs. Average Health Code Violations by Borough",
+             font = list(
+               color = "#333333"
+             )
+           ),
+           xaxis = list(title = "Income Group", tickangle = -45),
+           yaxis = list(title = "Average Number of Violations"),
+           legend = list(title = list(text = 'Borough')),
+           hovermode = 'closest',
+           paper_bgcolor= '#f8f9fa')
+  
+  return(income_plot)
+}
+

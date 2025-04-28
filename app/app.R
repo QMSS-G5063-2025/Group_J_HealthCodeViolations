@@ -33,8 +33,8 @@ ui <- navbarPage(
                     background: linear-gradient(135deg, #264653, #2A9D8F);
                     color: #fff;
                     margin-bottom: 60px;
-                    margin-left: 30px;
-                    margin-right: 30px;
+                    margin-left: 20px;
+                    margin-right: 20px;
                     border-radius: 8px;
                   }
                   .feature {
@@ -60,12 +60,12 @@ ui <- navbarPage(
                   }
                   .custom-container{
                     margin-top: 20px;
-                    margin-left: 30px;
-                    margin-right: 30px;
+                    margin-left: 20px;
+                    margin-right: 20px;
                     padding-bottom: 10px;
                   }
                   .custom-text{
-                    font-size: 18px;
+                    font-size: 16px;
                     margin-right: 40px;
                     line-height:28px;
                   }
@@ -75,33 +75,32 @@ ui <- navbarPage(
                   .navbar .navbar-brand {
                     font-weight: 600;
                     color: #264653;
-                    font-size: 20px;
+                    font-size: 18px;
                     padding-left: 70px;
                   }
                   .navbar-nav > li > a {
                     color: #343a40;
                     font-weight: 600;
-                    font-size: 20px;
+                    font-size: 18px;
                     color: #343a40; 
                     padding: 15px 20px;
                   }
                   .custom-list {
-                    font-size: 20px;
+                    font-size: 16px;
                     margin-bottom: 60px;
                   }
                   .custom-list2 {
-                    font-size: 17px;
+                    font-size: 16px;
                     margin-bottom: 5px;
                   }
                   .custom-dropdown{
                     margin-top: 20px;
-                    margin-left: 30px;
-                    margin-right: 30px;
+                    margin-left: 20px;
+                    margin-right: 20px;
                     padding-bottom: 60px;
-                    font-size: 18px;
+                    font-size: 16px;
                   }
                   .single-figure{
-                    margin-left: 30px;
                     padding-right: 200px;
                     padding-left: 200px;
                     padding-bottom: 10px;
@@ -111,37 +110,37 @@ ui <- navbarPage(
   tabPanel("Home",
            fluidPage(
                  tags$div(class = "custom-header",
-                          h1("Health Code Violations in NYC"),
-                          h3("An exploration of trends in restaurant health code violations across New York City between 2015 - 2023"),
-                          h4("Katherine Lin, Humaira Ahmed, and Juna Kawai-Yue")
+                          h2("Health Code Violations in NYC"),
+                          h4("An exploration of trends in restaurant health code violations across New York City between 2015 - 2023"),
+                          h5("Katherine Lin, Humaira Ahmed, and Juna Kawai-Yue")
                  ),
                  tags$div(class = "custom-container",
-                          h3("What's up with NYC restaurants?"),
+                          h4("Project Overview"),
                           tags$div(class = "custom-text",
                                   p("Our team was interested in investigating patterns in restaurant health code violations across New York City. We wanted to look at a few key aspects of these violations in tandem with reviews of these restaurants to see whether or not health code violations impact customer experiences but also what general trends there are within the city regarding these violations."),
                                   p("Within this website, you will find maps, barplots, word clouds, and line plots that demonstrate trends in the number of violations across NYC and between boroughs, cuisines, types of violations, and the customer experience and how these factors relate to socioeconomic makeups of the neighborhoods."))),
                  tags$div(class = "custom-container",
-                          h3("This website explores health code violations in NYC in the following ways:"),
+                          h4("This website explores health code violations in NYC in the following ways:"),
                           tags$div(class = "custom-row",
                                    tags$div(class = "col-md-4 feature",
                                             tags$i(class = "fas fa-magnifying-glass-chart"),
-                                            h3("Overall Trends"),
-                                            h4("Visualize health code violation trends across NYC.")
+                                            h4("Overall Trends"),
+                                            h5("Visualize health code violation trends across NYC.")
                                    ),
                                    tags$div(class = "col-md-4 feature",
                                             tags$i(class = "fas fa-triangle-exclamation"),
-                                            h3("Violations"),
-                                            h4("Look closer at trends around specific health code violations.")
+                                            h4("Violations"),
+                                            h5("Look closer at trends around specific health code violations.")
                                    ),
                                    tags$div(class = "col-md-4 feature",
                                             tags$i(class = "fas fa-quote-right"),
-                                            h3("Google Reviews"),
-                                            h4("Check out trends of Google Reviews for restaurants with high numbers of violations.")
+                                            h4("Google Reviews"),
+                                            h5("Check out trends of Google Reviews for restaurants with high numbers of violations.")
                                    )
                           )
                  ),
                  tags$div(class = "custom-container",
-                          h3("Data Sources & APIs Used"),
+                          h4("Data Sources & APIs Used"),
                           tags$div(class = 'custom-list',
                                   tags$ul(
                                     tags$li(tags$a(href = "https://data.cityofnewyork.us/Health/DOHMH-New-York-City-Restaurant-Inspection-Results/43nn-pn8j/about_data",
@@ -158,23 +157,32 @@ ui <- navbarPage(
   tabPanel('Overall Trends',
            fluidPage(
              tags$div(class = "custom-container",
-                      h2("Trends in Health Code Violations Across NYC and by Borough"),
+                      h3("Trends in Health Code Violations Across NYC and by Borough"),
                       tags$div(class = "custom-text",
-                               p("This page breaks down the greater trends of health code violations across New York City and within each borough and how other factors, like socioeconomic status are related."))
+                               p("Check out greater trends of health code violations across New York City and within each borough and how other factors, like socioeconomic status are related."))
              ),
              tags$div(class = 'custom-container',
-                      h3("Trends from 2019-2023"),
+                      h4("But First...How Many Restaurants are There Per Borough?"),
+                      tags$div(class = "custom-text",
+                               p("Let's get a base understanding of the distribution of restaurants across NYC.")),
+                      tags$div(class = "single-figure",
+                               plotlyOutput("gen_restcount", height = 450, width = "100%"))
+             ),
+             tags$div(class = 'custom-container',
+                      h4("Number of Violations Issued between 2019-2023"),
                       tags$div(class = "custom-row",
-                        plotlyOutput("last_5"),
-                        plotlyOutput("last_5_month"))
+                        plotlyOutput("last_5", height = 450, width = "100%"),
+                        plotlyOutput("last_5_month", height = 450, width = "100%"))
              ),
              tags$div(class = 'custom-container',
-                      h3("Number of Violations Across Boroughs"),
-                      tags$div(class = 'single-figure',
-                              plotlyOutput("by_borough")),
+                      h4("Number of Violations Across Boroughs and Average Violations with Respect to Income"),
+                      tags$div(class = "custom-row",
+                               plotlyOutput("by_borough", height = 450, width = "100%"),
+                               plotlyOutput("income", height = 450, width = "100%")
+                               )
              ),
              tags$div(class = "custom-dropdown",
-                      h3("Borough Violations"),
+                      h4("Maps of the Top 500 Restaurants with the Most Health Code Violations Across NYC"),
                       selectInput("region", "Region to Visualize:", 
                                   c(
                                     "All of NYC" = "nyc",
@@ -191,19 +199,30 @@ ui <- navbarPage(
   tabPanel('Violations',
            fluidPage(
               tags$div(class = "custom-container",
-                       h2("Trends in Health Code Violations"),
+                       h3("Trends in Health Code Violations"),
                        tags$div(class = "custom-text",
-                                p("This page dives deeper into a range of different types of violations, including, the top 10 most common violations across New York City."))
+                                p("Dive deeper into critical and non-critical violations, including, the top 10 most common violations across New York City."))
                  ),
-              tags$div(class = "custom-container",
-                       h3("Top 10 Most Common Violations by Borough"),
+              tags$div(class = 'custom-dropdown',
+                       h4("Top 10 Common Violations Across NYC"),
                        tags$div(class = "custom-text",
-                                p("The following visualizations highlights these violations through their violation codes. Hover over each bar to read what each represents.")),
-                       plotlyOutput("viol_borough")),
+                                p("View the top 10 non-critical and critical violations and the top 10 critical violations below."),
+                                p("The following visualizations highlight these violations using their violation codes. Hover over each bar to read what each code represents.")),
+                       selectInput("crit", "Select View:",
+                                c('Overall violations (non-critical and critical)'="overall", 'Critical violations'="crit"), width = "540px"),
+                                plotlyOutput('crit_graph'), height = 450, width = "100%"),
+              tags$div(class = 'custom-dropdown',
+                       h4("Top 10 Most Common Violations by Borough"),
+                       tags$div(class = "custom-text",
+                                p("View the top 10 non-critical and critical violations and the top 10 critical violations by borough below."),
+                                p("The following visualizations highlight these violations using their violation codes. Hover over each bar to read what each code represents.")),
+                       selectInput("crit_boro", "Select View:",
+                                   c('Overall violations (non-critical and critical)'="overall", 'Critical violations'="crit"), width = "540px"),
+                       plotlyOutput('crit_boro_graph'), height = 450, width = "100%"),
               tags$div(class = 'custom-container',
-                       h3("Maps of Top 10 Most Common Critical Violations Across NYC"),
+                       h4("Maps of Top 10 Most Common Critical Violations Across NYC"),
                        tags$div(class = "custom-text",
-                                p("The following maps allow you to explore restaurants who have been issued violations of the following critical health code violations:")),
+                                p("Use the following maps to explore restaurants that have been issued the following critical health code violations:")),
                        tags$div(class = 'custom-list2',
                                 tags$ol(
                                   tags$li('Food contact surface not properly washed, rinsed and sanitized after each use and following any activity when contamination may have occurred'),
@@ -238,9 +257,9 @@ ui <- navbarPage(
   tabPanel('Google Reviews',
            fluidPage(
              tags$div(class = "custom-container",
-                      h2("Text Analysis on Google Reviews from Top Violation Restaurants per Borough"),
+                      h3("Text Analysis on Google Reviews from Top Violation Restaurants per Borough"),
                       tags$div(class = "custom-text",
-                               p("This page covers text analysis of the 5 most recent reviews from the top 10 restaurants per borough with the most health code violations."))
+                               p("Explore Google Reviews from the top 10 restaurants with the most health code violations per borough."))
              )
            ))
 )
@@ -284,14 +303,27 @@ server <- function(input, output) {
     plot_violations_by_borough2(hcv)
   })
   
+  output$income <- renderPlotly({
+    plot_income(hcv, avg_income)
+  })
+  
   # handle bar graphs
   output$by_borough <- renderPlotly({
     borough_violations_plot_func(hcv)
   })
   
-  output$viol_borough <- renderPlotly({
-    borough_common_violations_plot_func(hcv)
+  output$crit_graph <- renderPlotly({
+    select_viol(hcv, input$crit)
   })
+  
+  output$crit_boro_graph <- renderPlotly({
+    select_viol_boro(hcv, input$crit_boro)
+  })
+  
+  output$gen_restcount <- renderPlotly({
+    borough_restaurants_plot_func(hcv)
+  })
+  
 }
 shinyApp(ui = ui, server = server)
 
