@@ -121,7 +121,7 @@ top_15 <- function(data, region){
     theme_minimal(base_size = 14) + 
     theme(
       plot.background = element_rect(fill = "#f8f9fa"),
-      plot.title = element_text(size = 13, color = "#333333"),
+      plot.title = element_text(size = 13, color = "#333333", hjust=0.5),
       axis.title = element_text(size = 11, face = "light"),
       axis.text = element_text(size = 10, color = "#555555"),
       legend.title = element_text(size = 11, face = "light"),

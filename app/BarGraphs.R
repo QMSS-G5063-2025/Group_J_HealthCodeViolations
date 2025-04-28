@@ -38,7 +38,7 @@ borough_violations_plot_func <- function(data) {
           panel.grid.minor = element_line(color = "#DDDDDD", size = 0.25),
           axis.text.x = element_text(),
           axis.text.y = element_text(),
-          plot.title = element_text(size = 13))
+          plot.title = element_text(size = 13, hjust = 0.5))
   
   graph <- ggplotly(graphtemp, tooltip = "text") %>%
     layout(
@@ -438,6 +438,66 @@ borough_restaurants_plot_func <- function(data) {
       )
     )
   return(graph)
+}
+
+# Top 10 restaurants per Borough
+count_bor <- function(data, target){
+  data %>%
+    filter(boro==target) %>%
+    filter(critical.flag != 'Not Applicable') %>%
+    filter(inspection.date != 1900-01-01) %>%
+    count(dba, building, street, zipcode, cuisine.description, latitude, longitude, address, name = 'hcv_count')
+}
+
+top10_rest <- function(data, region) {
+  data$address <- paste(data$building, data$street, data$zipcode)
+  # Let's create a new data frame to do so
+  hcv_region <- count_bor(data, region)
+  top10_region <- hcv_region %>%
+    arrange(desc(hcv_count)) %>%
+    slice(1:10)
+  
+  colors_borough <- c("Manhattan" = "#6D9AC6",  
+                      "Brooklyn" = "#F0A88C",  
+                      "Queens" = "#A1D6B9", 
+                      "Bronx" = "#F296B3",   
+                      "Staten Island" = "#C89BCC")
+  
+  plot <- ggplot(top10_region, aes(x = reorder(dba, hcv_count), y = hcv_count)) +
+    geom_col(fill = colors_borough[region], aes(text = paste(
+      "Violation Count: ", hcv_count
+    ))) +
+    coord_flip() +
+    labs(
+      x = "Restaurant",
+      y = "Violation Count") +
+    theme_minimal(base_size = 14) + 
+    theme(
+      plot.background = element_rect(fill = "#f8f9fa"),
+      plot.title = element_text(size = 13, color = "#333333", hjust=0.5),
+      axis.title = element_text(size = 11, face = "light"),
+      axis.text = element_text(size = 10, color = "#555555"),
+      legend.title = element_text(size = 11, face = "light"),
+      legend.text = element_text(size = 10),
+      panel.grid.major = element_line(color = "#DDDDDD", size = 0.5), 
+      panel.grid.minor = element_line(color = "#DDDDDD", size = 0.25)
+    )
+  
+  #plotly 
+  top_10_rest <- ggplotly(plot, tooltip="text") %>%
+    layout(
+      xaxis = list(
+        showticklabels = TRUE
+      ),
+      yaxis = list(
+        fixedrange = FALSE
+      ),
+      hoverlabel = list(
+        bgcolor = "white",
+        font = list(color = "black")
+      )
+    )
+  return(top_10_rest)
 }
 
 

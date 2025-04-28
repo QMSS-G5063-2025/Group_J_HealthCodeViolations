@@ -269,90 +269,25 @@ ui <- navbarPage(
                       h3("Text Analysis on Most Recent Google Reviews from Top Violation Restaurants per Borough"),
                       tags$div(class = "custom-text",
                                p("Explore Google Reviews from the top 10 restaurants with the most health code violations per borough."),
-                               p("Note: Due to limitations of the Google Places API, only 5 most recent reviews of each restaurant were able to be obtained for analysis."),
-                               p("The top 10 restaurants by borough that we pulled reviews from are as follows:")),
-                      tags$div(class = "custom-row",
-                               tags$div(class = 'custom-list2',
-                                        tags$div(class = "custom-text",
-                                                 p("Manhattan:")),
-                                        tags$ol(
-                                          tags$li('The Coppola Cafe'),
-                                          tags$li("Pi Greek Bakerie"),
-                                          tags$li("Sun Sai Gai Restaurant"),
-                                          tags$li("787 Coffee"),
-                                          tags$li("Nice One Bakery"),
-                                          tags$li("Temaske (No Reviews)"),
-                                          tags$li("Gammeok"),
-                                          tags$li('Mee Sum Cafe'),
-                                          tags$li("Sei less"),
-                                          tags$li("Appethaize")
-                                        )),
-                               tags$div(class = 'custom-list2',
-                                        tags$div(class = "custom-text",
-                                                 p("Brooklyn:")),
-                                        tags$ol(
-                                          tags$li('Master Wok (Closed)'),
-                                          tags$li("The Arch Diner (Closed)"),
-                                          tags$li("New Bay Coffee Shop"),
-                                          tags$li("Grace Caribbean Cuisine"),
-                                          tags$li("Yu King Bakery"),
-                                          tags$li('Yummy 88'),
-                                          tags$li("Soulkofa"),
-                                          tags$li("Ines' Bakery"),
-                                          tags$li("Paloma Coffee & Bakery"),
-                                          tags$li("VIP Coffee")
-                                        )),
-                               tags$div(class = 'custom-list2',
-                                        tags$div(class = "custom-text",
-                                                 p("Bronx:")),
-                                        tags$ol(
-                                          tags$li('El Fogon Kitchen'),
-                                          tags$li("Augies Deli & Pizzeria"),
-                                          tags$li("Campesino Dominicano Restaurant"),
-                                          tags$li("Champion Bakery"),
-                                          tags$li("Auntie Anne's/Cinnabon"),
-                                          tags$li('Bagels on Bartow'),
-                                          tags$li("Coco Pastel Bakery"),
-                                          tags$li("Lechonera El Fogon"),
-                                          tags$li("Ranch Restaurant"),
-                                          tags$li("Dunkin")
-                                        )),
-                               tags$div(class = 'custom-list2',
-                                        tags$div(class = "custom-text",
-                                                 p("Queens:")),
-                                        tags$ol(
-                                          tags$li('Prima Pasta & Cafe (Closed)'),
-                                          tags$li("Mi Casa Restaurant"),
-                                          tags$li("Brass Riz & Grill Express (No Reviews)"),
-                                          tags$li("Tropical II Restaurant"),
-                                          tags$li("Bel-Aire Diner"),
-                                          tags$li("Lulu's Pizza"),
-                                          tags$li("Perfecto Pizza & Coffee Shop"),
-                                          tags$li("Austin House"),
-                                          tags$li("Chakra Cafe"),
-                                          tags$li("Dear Han Cafe")
-                                        )),
-                               tags$div(class = 'custom-list2',
-                                        tags$div(class = "custom-text",
-                                                 p("Staten Island:")),
-                                        tags$ol(
-                                          tags$li('Burger King'),
-                                          tags$li("Perkins Restaurant & Bakery"),
-                                          tags$li("Panaderia La Mixteca Poblana & Deli"),
-                                          tags$li("Heartland Bagels"),
-                                          tags$li("Papa Johns Pizza"),
-                                          tags$li("Sofia's Taqueria"),
-                                          tags$li("Statue of Liberty Deli"),
-                                          tags$li("The West Shore Inn Restaurant"),
-                                          tags$li("A & S Caterers-Grill"),
-                                          tags$li("Jerry's 637 Diner")
-                                        )),
-                               ),
-                      tags$div(class = "custom-text",
-                               p("Note: Due to limitations of the Google Places API, only 5 most recent reviews of each restaurant were able to be obtained for analysis."))
+                               p("Note: Due to limitations of the Google Places API, only 5 most recent reviews of each restaurant were able to be obtained for analysis.")
+             )),
+             tags$div(class = "custom-dropdown",
+                      h4("Top 10 Restaurants with Highest Health Code Violations by Borough"),
+                      selectInput("top_10_rest", "Select a Borough:", 
+                                  c(
+                                    "Manhattan" = "Manhattan",
+                                    "Brooklyn" = "Brooklyn",
+                                    "Bronx" = "Bronx",
+                                    "Queens" = "Queens",
+                                    "Staten Island" = "Staten Island"
+                                  ),
+                                  width = "540px"),
+                      plotlyOutput('top_10_rest_graph', height = 450)
              ),
              tags$div(class = "custom-container",
                       h4("Most Common Words in Recent Restaurant Reviews"),
+                      tags$div(class = "custom-text",
+                               p("Note: Reviews from Master Wok, The Arch Diner, Temaske, Prima Pasta & Cafe, and Brass Riz & Grill Express were not available due to closure or lack of reviews")),
                       tags$div(class = "custom-row",
                                tags$div(class = "custom-dropdown",
                                         selectInput("word_boro", "Select a Region:", 
@@ -460,6 +395,10 @@ server <- function(input, output) {
   
   output$gen_restcount <- renderPlotly({
     borough_restaurants_plot_func(hcv)
+  })
+  
+  output$top_10_rest_graph <- renderPlotly({
+    top10_rest(hcv, input$top_10_rest)
   })
  
   # text analysis
