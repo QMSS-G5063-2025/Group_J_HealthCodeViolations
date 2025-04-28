@@ -21,5 +21,5 @@ All the visualizations will take some time to load (~1 minute at most).
 
 ## Team
 - Katherine Lin
-- Humaira Ahmen
+- Humaira Ahmed
 - Juna Kawai-Yue
