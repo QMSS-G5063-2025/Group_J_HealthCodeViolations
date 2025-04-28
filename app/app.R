@@ -9,12 +9,16 @@ library(leaflet)
 library(leaflet)
 library(htmltools)
 library(plotly)
-library(lubridate) 
+library(lubridate)
+library(wordcloud)
+library(tm)
+library(syuzhet)
 
 # Helper Function Files
 source("~/Desktop/Data_Viz/website/map_functions.R")
 source("~/Desktop/Data_Viz/website/line_functions.R")
 source("~/Desktop/Data_Viz/website/BarGraphs.R")
+source("~/Desktop/Data_Viz/website/text_functions.R")
 
 ui <- navbarPage(
   title = "NYC Health Code Violations",
@@ -105,6 +109,11 @@ ui <- navbarPage(
                     padding-left: 200px;
                     padding-bottom: 10px;
                   }
+                  .single-figure-bot{
+                    padding-right: 200px;
+                    padding-left: 200px;
+                    padding-bottom: 60px;
+                  }
                 "))
   ),
   tabPanel("Home",
@@ -118,24 +127,24 @@ ui <- navbarPage(
                           h4("Project Overview"),
                           tags$div(class = "custom-text",
                                   p("Our team was interested in investigating patterns in restaurant health code violations across New York City. We wanted to look at a few key aspects of these violations in tandem with reviews of these restaurants to see whether or not health code violations impact customer experiences but also what general trends there are within the city regarding these violations."),
-                                  p("Within this website, you will find maps, barplots, word clouds, and line plots that demonstrate trends in the number of violations across NYC and between boroughs, cuisines, types of violations, and the customer experience and how these factors relate to socioeconomic makeups of the neighborhoods."))),
+                                  p("Within this website, you will find maps, barplots, word clouds, and line plots that allows you to explore trends in the number of violations across NYC and between boroughs, types of violations, and the customer experience and how these factors relate to socioeconomic makeups of the neighborhoods."))),
                  tags$div(class = "custom-container",
-                          h4("This website explores health code violations in NYC in the following ways:"),
+                          h4("Within this website you will find:"),
                           tags$div(class = "custom-row",
                                    tags$div(class = "col-md-4 feature",
                                             tags$i(class = "fas fa-magnifying-glass-chart"),
                                             h4("Overall Trends"),
-                                            h5("Visualize health code violation trends across NYC.")
+                                            h5("Visualizations of health code violation trends across NYC.")
                                    ),
                                    tags$div(class = "col-md-4 feature",
                                             tags$i(class = "fas fa-triangle-exclamation"),
                                             h4("Violations"),
-                                            h5("Look closer at trends around specific health code violations.")
+                                            h5("Deep dive into specific health code violations.")
                                    ),
                                    tags$div(class = "col-md-4 feature",
                                             tags$i(class = "fas fa-quote-right"),
                                             h4("Google Reviews"),
-                                            h5("Check out trends of Google Reviews for restaurants with high numbers of violations.")
+                                            h5("Analysis of recent Google Reviews for restaurants with high numbers of violations.")
                                    )
                           )
                  ),
@@ -157,7 +166,7 @@ ui <- navbarPage(
   tabPanel('Overall Trends',
            fluidPage(
              tags$div(class = "custom-container",
-                      h3("Trends in Health Code Violations Across NYC and by Borough"),
+                      h3("Trends in Health Code Violations Across New York City and by Borough"),
                       tags$div(class = "custom-text",
                                p("Check out greater trends of health code violations across New York City and within each borough and how other factors, like socioeconomic status are related."))
              ),
@@ -175,14 +184,14 @@ ui <- navbarPage(
                         plotlyOutput("last_5_month", height = 450, width = "100%"))
              ),
              tags$div(class = 'custom-container',
-                      h4("Number of Violations Across Boroughs and Average Violations with Respect to Income"),
+                      h4("Number of Violations by Borough and with Respect to Income"),
                       tags$div(class = "custom-row",
                                plotlyOutput("by_borough", height = 450, width = "100%"),
                                plotlyOutput("income", height = 450, width = "100%")
                                )
              ),
              tags$div(class = "custom-dropdown",
-                      h4("Maps of the Top 500 Restaurants with the Most Health Code Violations Across NYC"),
+                      h4("Explore the Top 500 Restaurants with the Most Health Code Violations Across NYC"),
                       selectInput("region", "Region to Visualize:", 
                                   c(
                                     "All of NYC" = "nyc",
@@ -201,7 +210,7 @@ ui <- navbarPage(
               tags$div(class = "custom-container",
                        h3("Trends in Health Code Violations"),
                        tags$div(class = "custom-text",
-                                p("Dive deeper into critical and non-critical violations, including, the top 10 most common violations across New York City."))
+                                p("Dive deeper into common critical and non-critical violations across New York City."))
                  ),
               tags$div(class = 'custom-dropdown',
                        h4("Top 10 Common Violations Across NYC"),
@@ -220,7 +229,7 @@ ui <- navbarPage(
                                    c('Overall violations (non-critical and critical)'="overall", 'Critical violations'="crit"), width = "540px"),
                        plotlyOutput('crit_boro_graph'), height = 450, width = "100%"),
               tags$div(class = 'custom-container',
-                       h4("Maps of Top 10 Most Common Critical Violations Across NYC"),
+                       h4("Explore the Restaurants that have been Issued the Top 10 Most Common Critical Violations Across NYC"),
                        tags$div(class = "custom-text",
                                 p("Use the following maps to explore restaurants that have been issued the following critical health code violations:")),
                        tags$div(class = 'custom-list2',
@@ -257,11 +266,127 @@ ui <- navbarPage(
   tabPanel('Google Reviews',
            fluidPage(
              tags$div(class = "custom-container",
-                      h3("Text Analysis on Google Reviews from Top Violation Restaurants per Borough"),
+                      h3("Text Analysis on Most Recent Google Reviews from Top Violation Restaurants per Borough"),
                       tags$div(class = "custom-text",
-                               p("Explore Google Reviews from the top 10 restaurants with the most health code violations per borough."))
-             )
-           ))
+                               p("Explore Google Reviews from the top 10 restaurants with the most health code violations per borough."),
+                               p("Note: Due to limitations of the Google Places API, only 5 most recent reviews of each restaurant were able to be obtained for analysis."),
+                               p("The top 10 restaurants by borough that we pulled reviews from are as follows:")),
+                      tags$div(class = "custom-row",
+                               tags$div(class = 'custom-list2',
+                                        tags$div(class = "custom-text",
+                                                 p("Manhattan:")),
+                                        tags$ol(
+                                          tags$li('The Coppola Cafe'),
+                                          tags$li("Pi Greek Bakerie"),
+                                          tags$li("Sun Sai Gai Restaurant"),
+                                          tags$li("787 Coffee"),
+                                          tags$li("Nice One Bakery"),
+                                          tags$li("Temaske (No Reviews)"),
+                                          tags$li("Gammeok"),
+                                          tags$li('Mee Sum Cafe'),
+                                          tags$li("Sei less"),
+                                          tags$li("Appethaize")
+                                        )),
+                               tags$div(class = 'custom-list2',
+                                        tags$div(class = "custom-text",
+                                                 p("Brooklyn:")),
+                                        tags$ol(
+                                          tags$li('Master Wok (Closed)'),
+                                          tags$li("The Arch Diner (Closed)"),
+                                          tags$li("New Bay Coffee Shop"),
+                                          tags$li("Grace Caribbean Cuisine"),
+                                          tags$li("Yu King Bakery"),
+                                          tags$li('Yummy 88'),
+                                          tags$li("Soulkofa"),
+                                          tags$li("Ines' Bakery"),
+                                          tags$li("Paloma Coffee & Bakery"),
+                                          tags$li("VIP Coffee")
+                                        )),
+                               tags$div(class = 'custom-list2',
+                                        tags$div(class = "custom-text",
+                                                 p("Bronx:")),
+                                        tags$ol(
+                                          tags$li('El Fogon Kitchen'),
+                                          tags$li("Augies Deli & Pizzeria"),
+                                          tags$li("Campesino Dominicano Restaurant"),
+                                          tags$li("Champion Bakery"),
+                                          tags$li("Auntie Anne's/Cinnabon"),
+                                          tags$li('Bagels on Bartow'),
+                                          tags$li("Coco Pastel Bakery"),
+                                          tags$li("Lechonera El Fogon"),
+                                          tags$li("Ranch Restaurant"),
+                                          tags$li("Dunkin")
+                                        )),
+                               tags$div(class = 'custom-list2',
+                                        tags$div(class = "custom-text",
+                                                 p("Queens:")),
+                                        tags$ol(
+                                          tags$li('Prima Pasta & Cafe (Closed)'),
+                                          tags$li("Mi Casa Restaurant"),
+                                          tags$li("Brass Riz & Grill Express (No Reviews)"),
+                                          tags$li("Tropical II Restaurant"),
+                                          tags$li("Bel-Aire Diner"),
+                                          tags$li("Lulu's Pizza"),
+                                          tags$li("Perfecto Pizza & Coffee Shop"),
+                                          tags$li("Austin House"),
+                                          tags$li("Chakra Cafe"),
+                                          tags$li("Dear Han Cafe")
+                                        )),
+                               tags$div(class = 'custom-list2',
+                                        tags$div(class = "custom-text",
+                                                 p("Staten Island:")),
+                                        tags$ol(
+                                          tags$li('Burger King'),
+                                          tags$li("Perkins Restaurant & Bakery"),
+                                          tags$li("Panaderia La Mixteca Poblana & Deli"),
+                                          tags$li("Heartland Bagels"),
+                                          tags$li("Papa Johns Pizza"),
+                                          tags$li("Sofia's Taqueria"),
+                                          tags$li("Statue of Liberty Deli"),
+                                          tags$li("The West Shore Inn Restaurant"),
+                                          tags$li("A & S Caterers-Grill"),
+                                          tags$li("Jerry's 637 Diner")
+                                        )),
+                               ),
+                      tags$div(class = "custom-text",
+                               p("Note: Due to limitations of the Google Places API, only 5 most recent reviews of each restaurant were able to be obtained for analysis."))
+             ),
+             tags$div(class = "custom-container",
+                      h4("Most Common Words in Recent Restaurant Reviews"),
+                      tags$div(class = "custom-row",
+                               tags$div(class = "custom-dropdown",
+                                        selectInput("word_boro", "Select a Region:", 
+                                                    c(
+                                                      "All of NYC" = "nyc",
+                                                      "Brooklyn" = "brook",
+                                                      "Queens" = "queen",
+                                                      "Bronx" = "bronx",
+                                                      "Manhattan" = "man",
+                                                      "Staten Island" = "stat"
+                                                    ), width = "540px"),
+                                        plotOutput("clouds", height=450, width = "100%")),
+                               tags$div(class = "custom-dropdown",
+                                        selectInput("top_15", "Select a Region:", 
+                                                    c(
+                                                      "All of NYC" = "New York City",
+                                                      "Brooklyn" = "Brooklyn",
+                                                      "Queens" = "Queens",
+                                                      "Bronx" = "Bronx",
+                                                      "Manhattan" = "Manhattan",
+                                                      "Staten Island" = "Staten Island"
+                                                    ), width = "540px"),
+                                        plotlyOutput("top_15_graph", height=450, width = "100%")))
+                               ),
+             tags$div(class = "custom-container",
+                      h4("Sentiment Analysis of Restaurant Reviews by Boroughs"),
+                      tags$div(class = "custom-text",
+                               p("Compare sentiments of recent restaurant reviews for the top 10 restaurants with the most health code violations as of 2023 by borough.")),
+                      tags$div(class = 'single-figure-bot',
+                               tags$div(class = "custom-text",
+                               plotlyOutput('sent_graph'), height = 600, width = "100%")
+                      )
+             
+           )))
 )
 
 server <- function(input, output) {
@@ -269,6 +394,11 @@ server <- function(input, output) {
   hcv <- read.csv("~/Desktop/Data_Viz/hcvyear.csv")
   nyczips <- read.csv("~/Desktop/Data_Viz/nyc-zip-codes.csv")
   dta <- read.csv("~/Desktop/Data_Viz/22zpallagi.csv")
+  queens_revs <-  read.csv("~/Desktop/Data_Viz/queens_revs.csv")
+  bronx_revs <- read.csv("~/Desktop/Data_Viz/bronx_revs.csv")
+  man_revs <- read.csv("~/Desktop/Data_Viz/man_revs.csv")
+  brook_revs <- read.csv("~/Desktop/Data_Viz/brook_revs.csv")
+  stat_revs <- read.csv("~/Desktop/Data_Viz/stat_revs.csv")
   
   # filter dta to only rows with zip code in the list of NYC Zip Codes
   dta_nyc <- dta[dta$zipcode %in% nyczips$ZipCode, ]
@@ -283,6 +413,14 @@ server <- function(input, output) {
       avg_AGI = mean(A00100, na.rm = TRUE),
       avg_income = mean(A02650, na.rm = TRUE)
     )
+  
+  all_revs <- bind_rows(
+    man_revs,
+    brook_revs,
+    queens_revs,
+    bronx_revs,
+    stat_revs
+  )
   
   # handle regional maps
   output$region_map <- renderLeaflet({
@@ -323,7 +461,62 @@ server <- function(input, output) {
   output$gen_restcount <- renderPlotly({
     borough_restaurants_plot_func(hcv)
   })
+ 
+  # text analysis
+  output$clouds <- renderPlot({
+    if (input$word_boro == "nyc") {
+      word_clouds(all_revs)
+    } else if (input$word_boro == "brook") {
+      word_clouds(brook_revs)
+    } else if (input$word_boro == "queen") {
+      word_clouds(queens_revs)
+    } else if (input$word_boro == "bronx") {
+      word_clouds(bronx_revs)
+    } else if (input$word_boro == "man") {
+      word_clouds(man_revs)
+    } else if (input$word_boro == "stat") {
+      word_clouds(stat_revs)
+    }
+  })
   
+  # top words
+  observe({
+    if(input$top_15=="New York City"){
+      output$top_15_graph <- renderPlotly({
+        top_15(all_revs, "New York City")
+      })
+    }
+    if(input$top_15=="Brooklyn"){
+      output$top_15_graph <- renderPlotly({
+        top_15(brook_revs, "Brooklyn")
+      })
+    }
+    if(input$top_15=="Queens"){
+      output$top_15_graph <- renderPlotly({
+        top_15(queens_revs, "Queens")
+      })
+    }
+    if(input$top_15=="Bronx"){
+      output$top_15_graph <- renderPlotly({
+        top_15(bronx_revs, "Bronx")
+      })
+    }
+    if(input$top_15=="Manhattan"){
+      output$top_15_graph <- renderPlotly({
+        top_15(man_revs, "Manhattan")
+      })
+    }
+    if(input$top_15=="Staten Island"){
+      output$top_15_graph <- renderPlotly({
+        top_15(stat_revs, "Staten Island")
+      })
+    }
+  })
+  
+  output$sent_graph <- renderPlotly({
+    graph_sent(queens_revs, bronx_revs, man_revs, brook_revs, stat_revs)
+  })
+
 }
 shinyApp(ui = ui, server = server)
 
