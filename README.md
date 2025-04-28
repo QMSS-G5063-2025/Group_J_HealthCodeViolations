@@ -13,7 +13,7 @@ This project is an exploration of patterns in restaurant health code violations 
 📈 Socioeconomic factors: How do health code violations correlate with socioeconomic factors, like income, of different regional areas?
 
 ## Technology & Methods
-We visualize our project using Shiny which you can access here: https://katherinelin.shinyapps.io/NYC-Health-Code-Violations/
+We visualize our project using Shiny which you can access here: https://humairaahmed02.shinyapps.io/HCV_QMSS_DataViz/
 
 (Currently under 🏗️construction🏗️ due to memory availability issues...)
 
