@@ -15,8 +15,6 @@ This project is an exploration of patterns in restaurant health code violations 
 ## Technology & Methods
 We visualize our project using Shiny which you can access here: https://humairaahmed02.shinyapps.io/HCV_QMSS_DataViz/
 
-(Currently under 🏗️construction🏗️ due to memory availability issues...)
-
 Within this website you will find a series of static and interactive graphs and maps that help try to tackle some of our motivating questions above.
 ### Notes
 All the visualizations will take some time to load (~1 minute at most).
