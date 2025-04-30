@@ -17,6 +17,9 @@ We visualize our project using Shiny which you can access here: https://humairaa
 
 Within this website you will find a series of static and interactive graphs and maps that help try to tackle some of our motivating questions above. The website may take a second to load all the figures.
 
+## Presentation Slides
+Link to our slides for Wednesday's presentation: https://docs.google.com/presentation/d/1hldYM_2edhYqkjYvEZdyFYlq-luNRJ6dCwndqaWidg8/edit?usp=sharing
+
 ## Team
 - Katherine Lin
 - Humaira Ahmed
