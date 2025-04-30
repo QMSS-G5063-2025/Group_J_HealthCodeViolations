@@ -390,6 +390,7 @@ select_viol_boro <- function(data, type){
 borough_restaurants_func <- function(data) {
   temp <- data %>%
     filter(boro != '0') %>% # for some reason there are ones without any boroughs? I think these get filtered out in our other graphs regardless so whatever
+    distinct(dba, boro, latitude, longitude, street, building, zipcode) %>%
     count(boro, name = 'restaurant.count') %>% 
     return(temp)
 }
@@ -439,6 +440,7 @@ borough_restaurants_plot_func <- function(data) {
     )
   return(graph)
 }
+
 
 # Top 10 restaurants per Borough
 count_bor <- function(data, target){
