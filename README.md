@@ -15,7 +15,7 @@ This project is an exploration of patterns in restaurant health code violations 
 ## Technology & Methods
 We visualize our project using Shiny which you can access here: https://humairaahmed02.shinyapps.io/Health_Code_Violations_GroupJ_QMSS/
 
-Within this website you will find a series of static and interactive graphs and maps that help try to tackle some of our motivating questions above. The website may take a second to load all the figures.
+Within this website you will find a series of static and interactive graphs and maps that help try to tackle some of our motivating questions above. The website may take a second to load some of the figures, especially in the 'violations page', but won't take any longer than ~30 seconds when toggling and loading the page.
 
 ## Presentation Slides
 Link to our slides for Wednesday's presentation: https://docs.google.com/presentation/d/1hldYM_2edhYqkjYvEZdyFYlq-luNRJ6dCwndqaWidg8/edit?usp=sharing
