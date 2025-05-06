@@ -7,14 +7,14 @@ count_bor <- function(data, target){
     filter(boro==target) %>%
     filter(critical.flag != 'Not Applicable') %>%
     filter(inspection.date != 1900-01-01) %>%
-    count(dba, building, street, zipcode, cuisine.description, latitude, longitude, address, name = 'hcv_count')
+    dplyr::count(dba, building, street, zipcode, cuisine.description, latitude, longitude, address, name = 'hcv_count')
 }
 
 count_whole <- function(data){
   data %>%
     filter(inspection.date != 1900-01-01)  %>%
     filter(critical.flag != 'Not Applicable') %>%
-    count(dba, building, street, zipcode, cuisine.description, latitude, longitude, address, name = 'hcv_count')
+    dplyr::count(dba, building, street, zipcode, cuisine.description, latitude, longitude, address, name = 'hcv_count')
 }
 create_map <- function(region_data){
   m <- leaflet() %>%
@@ -104,12 +104,12 @@ count_whole2 <- function(data){
   data %>%
     filter(inspection.date != 1900-01-01) %>%
     filter(critical.flag != 'Not Applicable') %>%
-    count(violation.description, critical.flag, name = 'viol_count')
+    dplyr::count(violation.description, critical.flag, name = 'viol_count')
 }
 
 count_whole3 <- function(data){
   data %>%
-    count(dba, building, street, zipcode, cuisine.description, latitude, longitude, violation.description, address, name = 'v_count')
+    dplyr::count(dba, building, street, zipcode, cuisine.description, latitude, longitude, violation.description, address, name = 'v_count')
 }
 
 top10_viol <- function(data){

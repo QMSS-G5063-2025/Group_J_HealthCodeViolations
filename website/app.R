@@ -14,6 +14,7 @@ library(wordcloud)
 library(tm)
 library(syuzhet)
 library(data.table)
+library(tidytext)
 
 # Helper Function Files
 source("map_functions.R")
@@ -105,8 +106,8 @@ ui <- navbarPage(
                     font-size: 16px;
                   }
                   .single-figure{
-                    padding-right: 200px;
-                    padding-left: 200px;
+                    padding-right: 20px;
+                    padding-left: 20px;
                     padding-bottom: 10px;
                   }
                   .single-figure-bot{
@@ -168,14 +169,31 @@ ui <- navbarPage(
                            tags$div(class = "custom-container",
                                     h3("Trends in Health Code Violations Across New York City and by Borough"),
                                     tags$div(class = "custom-text",
-                                             p("Check out greater trends of health code violations across New York City and within each borough and how other factors, like socioeconomic status are related."))
+                                             p("Check out greater trends of health code violations across New York City, within each borough, and by cuisine and how other factors, like socioeconomic status are related."))
                            ),
                            tags$div(class = 'custom-container',
-                                    h4("But First...How Many Restaurants are There Per Borough?"),
+                                    h4("But First...Let's Get a General Understanding of the Data"),
                                     tags$div(class = "custom-text",
                                              p("Let's get a base understanding of the distribution of restaurants across NYC.")),
-                                    tags$div(class = "single-figure",
-                                             plotlyOutput("gen_restcount", height = 450, width = "100%"))
+                                    tags$div(class = "custom-row",
+                                             plotlyOutput("gen_restcount", height = 450, width = "100%")),
+                                    tags$div(class = "custom-text",
+                                             p("Let's also look at the distribution of cuisines across NYC.")),
+                                    tags$div(class = "custom-row",
+                                             tags$div(style = "flex: 1; padding-right: 5px; padding-top: 100px",
+                                                      plotlyOutput("overall_cuis", height = 450)
+                                             ),
+                                             tags$div(style = "flex: 1",
+                                                     tags$div(class = "custom-dropdown",
+                                                              selectInput("cuis_region", "Select a Region:", 
+                                                                          c(
+                                                                            "Brooklyn" = "Brooklyn",
+                                                                            "Queens" = "Queens",
+                                                                            "Bronx" = "Bronx",
+                                                                            "Manhattan" = "Manhattan",
+                                                                            "Staten Island" = "Staten Island"
+                                                                          ), width = "540px"),
+                                                              plotlyOutput("borough_cuis", height=450))))
                            ),
                            tags$div(class = 'custom-container',
                                     h4("Number of Violations Issued between 2019-2023"),
@@ -190,9 +208,16 @@ ui <- navbarPage(
                                              plotlyOutput("income", height = 450, width = "100%")
                                     )
                            ),
+                           tags$div(class = "custom-container",
+                                    h4("Cuisine Types with the Most Health Code Violations"),
+                                    tags$div(class = 'single-figure',
+                                             tags$div(class = "custom-text",
+                                                      plotlyOutput('cuis_viol'), height = 600, width = "100%")
+                                    )
+                           ),
                            tags$div(class = "custom-dropdown",
                                     h4("Explore the Top 500 Restaurants with the Most Health Code Violations Across NYC"),
-                                    selectInput("region", "Region to Visualize:", 
+                                    selectInput("region", "Select a Region to Visualize:", 
                                                 c(
                                                   "All of NYC" = "nyc",
                                                   "Brooklyn" = "brook",
@@ -228,6 +253,14 @@ ui <- navbarPage(
                                     selectInput("crit_boro", "Select View:",
                                                 c('Overall violations (non-critical and critical)'="overall", 'Critical violations'="crit"), width = "540px"),
                                     plotlyOutput('crit_boro_graph'), height = 450, width = "100%"),
+                           tags$div(class = "custom-container",
+                                    h4("Top 10 Most Common Violations by Common Cuisine Type"),
+                                    tags$div(class = "custom-text",
+                                             p("View the top 10 non-critical and critical violations by common cuisines below.")),
+                                    tags$div(class = 'single-figure',
+                                             plotlyOutput('cuis_viol_type'), height = 600, width = "100%")
+                                    
+                           ),
                            tags$div(class = 'custom-container',
                                     h4("Explore the Restaurants that have been Issued the Top 10 Most Common Critical Violations Across NYC"),
                                     tags$div(class = "custom-text",
@@ -246,7 +279,7 @@ ui <- navbarPage(
                                                tags$li("Food not protected from potential source of contamination during storage, preparation, transportation, display or service"),
                                              ))),
                            tags$div(class = "custom-dropdown",
-                                    selectInput("violation", "Select a Violation:", 
+                                    selectInput("violation", "Select a Violation to Visualize:", 
                                                 c(
                                                   "(1) Improper contact surface cleaning" = "1",
                                                   "(2) Mice in food and non-food areas" = "2",
@@ -262,7 +295,8 @@ ui <- navbarPage(
                                                 width = "540px"),
                                     leafletOutput('viol_map', height = 600)
                            )
-                         )),
+                         )
+                ),
                 tabPanel('Google Reviews',
                          fluidPage(
                            tags$div(class = "custom-container",
@@ -328,7 +362,7 @@ ui <- navbarPage(
 
 server <- function(input, output) {
   # Load health code violations data
-  hcv <- readRDS("data//hcv.rds")
+  hcv <- readRDS("data/hcv.rds")
   avg_income <- read.csv("data/avg_income.csv")
   queens_revs <-  read.csv("data/queens_revs.csv")
   bronx_revs <- read.csv("data/bronx_revs.csv")
@@ -371,6 +405,28 @@ server <- function(input, output) {
       output$region_map <- renderLeaflet({
         map_allviolations(hcv, input$region)
       })
+      
+      output$overall_cuis <- renderPlotly({
+        overall_cuisine_plot_func(hcv)
+      })
+      
+      output$borough_cuis <- renderPlotly({
+        if(input$cuis_region == "Brooklyn"){
+          borough_common_cuisines_plot_func(hcv, "Brooklyn")
+        }else if(input$cuis_region == "Queens"){
+          borough_common_cuisines_plot_func(hcv, "Queens")
+        }else if(input$cuis_region == "Bronx"){
+          borough_common_cuisines_plot_func(hcv, "Bronx")
+        }else if(input$cuis_region == "Staten Island"){
+          borough_common_cuisines_plot_func(hcv, "Staten Island")
+        }else if(input$cuis_region == "Manhattan"){
+          borough_common_cuisines_plot_func(hcv, "Manhattan")
+        }
+      })
+      
+      output$cuis_viol <- renderPlotly({
+        cuisine_violations_plot_func(hcv)
+      })
     }
     
     if (input$tabs == "Violations"){
@@ -384,6 +440,10 @@ server <- function(input, output) {
       
       output$viol_map <- renderLeaflet({
         map_critviolations(hcv, input$violation)
+      })
+      
+      output$cuis_viol_type <- renderPlotly({
+        cuisine_common_violations_plot_func(hcv)
       })
       
     }

@@ -212,8 +212,14 @@ merge_clean <- function(data1, data2){
 plot_income <- function(data1, data2){
   agg_data <- merge_clean(data1, data2)
   
+  colors_borough <- c("Manhattan" = "#6D9AC6",  
+                      "Brooklyn" = "#F0A88C",  
+                      "Queens" = "#A1D6B9", 
+                      "Bronx" = "#F296B3",   
+                      "Staten Island" = "#C89BCC")
+  
   # line plot: Income vs. Average Health Code Violations by Borough 
-  income_plot <- plot_ly(agg_data, x = ~income_group, y = ~avg_violations, color = ~boro, 
+  income_plot <- plot_ly(agg_data, x = ~income_group, y = ~avg_violations, color = ~boro, colors = colors_borough,
           type = 'scatter', mode = 'lines+markers', 
           line = list(width = 2), 
           marker = list(size = 6)) %>%
