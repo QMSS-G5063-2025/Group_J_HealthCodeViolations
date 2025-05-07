@@ -199,7 +199,7 @@ merge_clean <- function(data1, data2){
   merged_data_count$income_group <- cut(merged_data_count$avg_income, 
                                         breaks = seq(0, max(merged_data_count$avg_income, na.rm = TRUE), by = 50000), 
                                         include.lowest = TRUE, 
-                                        labels = paste0("$", seq(0, max(merged_data_count$avg_income, na.rm = TRUE), by = 50000)[-1], "k"))
+                                        labels = paste0("$", seq(0, max(merged_data_count$avg_income, na.rm = TRUE), by = 50000)[-1]))
   
   # average number of violations per income group
   agg_data <- merged_data_count %>%
@@ -218,6 +218,7 @@ plot_income <- function(data1, data2){
                       "Bronx" = "#F296B3",   
                       "Staten Island" = "#C89BCC")
   
+  
   # line plot: Income vs. Average Health Code Violations by Borough 
   income_plot <- plot_ly(agg_data, x = ~income_group, y = ~avg_violations, color = ~boro, colors = colors_borough,
           type = 'scatter', mode = 'lines+markers', 
@@ -225,12 +226,12 @@ plot_income <- function(data1, data2){
           marker = list(size = 6)) %>%
     layout(
            title = list(
-             text = "Income vs. Average Health Code Violations by Borough",
+             text = "Average Income vs. Average Health Code Violations by Borough",
              font = list(
                color = "#333333"
              )
            ),
-           xaxis = list(title = "Income Group", tickangle = -45),
+           xaxis = list(title = "Average Income Group", tickvals = c("$50000", "$300000", "$550000", "$800000", "$1050000", "$1300000","$1550000", "$1800000","$2050000", "$2300000", "$2550000")),
            yaxis = list(title = "Average Number of Violations"),
            legend = list(title = list(text = 'Borough')),
            hovermode = 'closest',
