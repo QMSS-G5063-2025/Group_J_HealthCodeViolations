@@ -1,12 +1,9 @@
-library(dplyr)
-library(tidytext)
-
 # 1. WHICH BOROUGHS HAD THE MOST VIOLATIONS? (4/26)
 
 borough_violations_func <- function(data) {
   temp <- data %>%
     filter(critical.flag != 'Not Applicable') %>% 
-    dplyr::count(boro) %>% 
+    count(boro) %>% 
     arrange(desc(n))
   return(temp)
 }
@@ -71,7 +68,7 @@ borough_common_violations_func <- function(data) {
   
   temp <- data %>%
     filter(critical.flag != 'Not Applicable') %>%
-    dplyr::count(boro, violation.code, name = 'violation.code.count') %>%
+    count(boro, violation.code, name = 'violation.code.count') %>%
     left_join(violationmerge, by = "violation.code") %>% # merging with unique violation description data
     group_by(boro) %>%
     arrange(desc(violation.code.count)) %>%  # ordering by descending order
@@ -96,6 +93,7 @@ borough_common_violations_plot_func <- function(data) {
     fill = boro, 
     text = paste(
       "Violation Code Description:", violation.description,
+      "<br>Borough:", boro,
       "<br>Violation Code:", violation.code,
       "<br>Number of Violations:", violation.code.count
     )
@@ -105,7 +103,7 @@ borough_common_violations_plot_func <- function(data) {
     facet_grid(~ boro) +
     xlab("Violation Type") + 
     ylab("Number of Violations") + 
-    guides(fill = "none") +
+    guides(fill = guide_legend(title = "Borough")) +
     theme_minimal(base_size = 14) +
     theme(
       panel.spacing = unit(0.2, "lines"),
@@ -147,7 +145,7 @@ common_violations_func <- function(data) {
   
   temp <- data %>%
     filter(critical.flag != 'Not Applicable') %>%
-    dplyr::count(violation.code, name = 'violation.code.count') %>%
+    count(violation.code, name = 'violation.code.count') %>%
     left_join(violationmerge, by = "violation.code") %>% # merging with unique violation description data
     arrange(desc(violation.code.count)) %>%  # ordering by descending order
     slice_head(n = 10) # getting top 10 
@@ -184,7 +182,7 @@ common_violations_plot_func <- function(data) {
     coord_flip() +
     xlab("Violation Type") + 
     ylab("Number of Violations") + 
-    guides(fill = "none") +
+    guides(fill = guide_legend(title = "Violation Code")) +
     theme_minimal(base_size = 14) +
     theme(
       plot.background = element_rect(fill = "#f8f9fa"),
@@ -224,7 +222,7 @@ critical_violations_func <- function(data) {
   
   temp <- data %>%
     filter(critical.flag == 'Critical') %>%
-    dplyr::count(violation.code, name = 'violation.code.count') %>%
+    count(violation.code, name = 'violation.code.count') %>%
     left_join(violationmerge, by = "violation.code") %>% # merging with unique violation description data
     arrange(desc(violation.code.count)) %>%  # ordering by descending order
     slice_head(n = 10) # getting top 10 criticals
@@ -262,7 +260,7 @@ critical_violations_plot_func <- function(data) {
     coord_flip() +
     xlab("Critical Violation Type") + 
     ylab("Number of Violations Flagged As Critical") + 
-    guides(fill = "none") +
+    guides(fill = guide_legend(title = "Critical Violation Code")) +
     theme_minimal(base_size = 14) +
     theme(
       plot.background = element_rect(fill = "#f8f9fa"),
@@ -311,7 +309,7 @@ crit_borough_violations_func <- function(data) {
   
   temp <- data %>%
     filter(critical.flag == 'Critical') %>%
-    dplyr::count(boro, violation.code, name = 'violation.code.count') %>%
+    count(boro, violation.code, name = 'violation.code.count') %>%
     left_join(violationmerge, by = "violation.code") %>% # merging with unique violation description data
     group_by(boro) %>%
     arrange(desc(violation.code.count)) %>%  # ordering by descending order
@@ -335,6 +333,7 @@ crit_borough_violations_plot_func <- function(data) {
     fill = boro, 
     text = paste(
       "Violation Code Description:", violation.description,
+      "<br>Borough:", boro,
       "<br>Violation Code:", violation.code,
       "<br>Number of Violations:", violation.code.count
     )
@@ -344,7 +343,7 @@ crit_borough_violations_plot_func <- function(data) {
     facet_grid(. ~ boro) +
     xlab("Critical Violation Type") + 
     ylab("Number of Critical Violations") + 
-    guides(fill = "none") +
+    guides(fill = guide_legend(title = "Borough")) +
     theme_minimal(base_size = 14) +
     theme(
       plot.background = element_rect(fill = "#f8f9fa"),
@@ -392,7 +391,7 @@ borough_restaurants_func <- function(data) {
   temp <- data %>%
     filter(boro != '0') %>% # for some reason there are ones without any boroughs? I think these get filtered out in our other graphs regardless so whatever
     distinct(dba, boro, latitude, longitude, street, building, zipcode) %>%
-    dplyr::count(boro, name = 'restaurant.count') %>% 
+    count(boro, name = 'restaurant.count') %>% 
     return(temp)
 }
 
@@ -449,7 +448,7 @@ count_bor <- function(data, target){
     filter(boro==target) %>%
     filter(critical.flag != 'Not Applicable') %>%
     filter(inspection.date != 1900-01-01) %>%
-    dplyr::count(dba, building, street, zipcode, cuisine.description, latitude, longitude, address, name = 'hcv_count')
+    count(dba, building, street, zipcode, cuisine.description, latitude, longitude, address, name = 'hcv_count')
 }
 
 top10_rest <- function(data, region) {
@@ -515,7 +514,7 @@ overall_cuisine_func <- function(data) {
   temp <- data %>%
     filter(cuisine.description != '') %>%
     distinct(dba, boro, cuisine.description, latitude, longitude, street, building, zipcode) %>%
-    dplyr::count(cuisine.description, name = 'cuisine.count') %>% 
+    count(cuisine.description, name = 'cuisine.count') %>% 
     arrange(desc(cuisine.count)) %>%
     slice_head(n = 10)
   return(temp)
@@ -542,14 +541,14 @@ overall_cuisine_plot_func <- function(data) {
     scale_fill_manual(values = colors_cuisine) +
     coord_flip() +
     xlab("Cuisine Type") + ylab("Number of restaurants") +
-    guides(fill = "none") + # getting legend 
+    guides(fill = guide_legend(title = "Cuisine Type")) + # getting legend 
     theme_minimal(base_size = 14) +
     theme(
       plot.background = element_rect(fill = "#f8f9fa"),
       axis.title = element_text(size = 11, face = "plain"),
       axis.text = element_text(size = 10, color = "#555555"),
-      #legend.title = element_text(size = 11, face = "plain"),
-      #legend.text = element_text(size = 10),
+      legend.title = element_text(size = 11, face = "plain"),
+      legend.text = element_text(size = 10),
       panel.grid.major = element_line(color = "#DDDDDD", size = 0.5), 
       panel.grid.minor = element_line(color = "#DDDDDD", size = 0.25),
       axis.text.x = element_text(),
@@ -581,20 +580,7 @@ borough_common_cuisines_func <- function(data) {
   temp <- data %>%
     filter(cuisine.description != '') %>%
     distinct(dba, boro, cuisine.description, latitude, longitude, street, building, zipcode) %>% # counting distinct restaurants and therefore cuisine descriptions
-    dplyr::count(boro, cuisine.description, name = 'cuisine.count') %>%
-    group_by(boro) %>%
-    arrange(desc(cuisine.count)) %>%  # ordering by descending order
-    slice_head(n = 10) # getting top 10 per borough
-  return(temp)
-}
-
-# so i can use a drop down and have a shorter page
-borough_common_cuisines_func_2 <- function(data, target) {
-  temp <- data %>%
-    filter(cuisine.description != '') %>%
-    filter(boro==target) %>%
-    distinct(dba, boro, cuisine.description, latitude, longitude, street, building, zipcode) %>% # counting distinct restaurants and therefore cuisine descriptions
-    dplyr::count(boro, cuisine.description, name = 'cuisine.count') %>%
+    count(boro, cuisine.description, name = 'cuisine.count') %>%
     group_by(boro) %>%
     arrange(desc(cuisine.count)) %>%  # ordering by descending order
     slice_head(n = 10) # getting top 10 per borough
@@ -602,8 +588,8 @@ borough_common_cuisines_func_2 <- function(data, target) {
 }
 
 # plotting from last function 
-borough_common_cuisines_plot_func <- function(data, region) {
-  boroughcommoncuisinesdata <- borough_common_cuisines_func_2(data, region)
+borough_common_cuisines_plot_func <- function(data) {
+  boroughcommoncuisinesdata <- borough_common_cuisines_func(data)
   colors_borough <- c("Manhattan" = "#6D9AC6",
                       "Brooklyn" = "#F0A88C",
                       "Queens" = "#A1D6B9",
@@ -611,17 +597,21 @@ borough_common_cuisines_plot_func <- function(data, region) {
                       "Staten Island" = "#C89BCC")
   
   plot <- ggplot(boroughcommoncuisinesdata, aes(
-    x = reorder(cuisine.description, cuisine.count), 
+    x = reorder_within(cuisine.description, cuisine.count, boro), 
     y = cuisine.count, 
     fill = boro, 
     text = paste(
-      "<br>Number of Restaurants:", cuisine.count
+      "Cuisine Description:", cuisine.description,
+      "<br>Borough:", boro,
+      "<br>Number of Cuisines:", cuisine.count
     )
   )) +
-    geom_col(fill = colors_borough[region]) +
+    scale_fill_manual(values = colors_borough) +
+    geom_col() +
+    facet_wrap(~ boro, scales = "free_x") +  
+    scale_x_reordered() +
     xlab("Cuisine Type") + 
     ylab("Number of Restaurants") + 
-    coord_flip() +
     guides(fill = guide_legend(title = "Borough")) +
     theme_minimal(base_size = 14) +
     theme(
@@ -632,7 +622,7 @@ borough_common_cuisines_plot_func <- function(data, region) {
       legend.text = element_text(size = 10),
       panel.grid.major = element_line(color = "#DDDDDD", size = 0.5), 
       panel.grid.minor = element_line(color = "#DDDDDD", size = 0.25),
-      axis.text.x = element_text(size = 10, hjust = 1),
+      axis.text.x = element_text(angle = 70, size = 5, hjust = 1),
       axis.text.y = element_text())
   
   plot2 <- ggplotly(plot, tooltip = "text")%>%
@@ -658,7 +648,7 @@ cuisine_violations_func <- function(data) {
     filter(cuisine.description != '') %>%
     filter(critical.flag != 'Not Applicable') %>% 
     # distinct(dba, boro, cuisine.description, latitude, longitude, street, building, zipcode) %>%
-    dplyr::count(cuisine.description, name = 'cuisine.count') %>% 
+    count(cuisine.description, name = 'cuisine.count') %>% 
     arrange(desc(cuisine.count)) %>%
     slice_head(n = 10) # getting top 10 per borough
   return(temp)
@@ -685,7 +675,7 @@ cuisine_violations_plot_func <- function(data) {
     scale_fill_manual(values = colors_cuisine) +
     coord_flip() +
     xlab("Cuisine Type") + ylab("Number of violations") +
-    guides(fill = "none") + # getting legend 
+    guides(fill = guide_legend(title = "Cuisine Type")) + # getting legend 
     theme_minimal(base_size = 14) +
     theme(
       plot.background = element_rect(fill = "#f8f9fa"),
@@ -719,21 +709,21 @@ cuisine_violations_plot_func <- function(data) {
 # 11. MOST COMMON VIOLATIONS BY CUISINE (5/4)
 cuisine_common_violations_func <- function(data) {
   violationmerge <- data %>% # need to clean up violation.descriptions since some entries have extra whitespace, etc.
-    dplyr::select(violation.code, violation.description) %>%
+    select(violation.code, violation.description) %>%
     distinct(violation.code, .keep_all = TRUE)
   
   topcuisines <- data %>%
     filter(cuisine.description != '') %>%
     filter(critical.flag != 'Not Applicable') %>% 
     # distinct(dba, boro, cuisine.description, latitude, longitude, street, building, zipcode) %>%
-    dplyr::count(cuisine.description, name = 'cuisine.count') %>% 
+    count(cuisine.description, name = 'cuisine.count') %>% 
     arrange(desc(cuisine.count)) %>%
     slice_head(n = 5) # getting top 5 for cuisine 
   
   temp <- data %>%
     filter(cuisine.description != '') %>%
     filter(critical.flag != 'Not Applicable') %>%
-    dplyr::count(cuisine.description, violation.code, name = 'violation.code.count') %>%
+    count(cuisine.description, violation.code, name = 'violation.code.count') %>%
     left_join(violationmerge, by = "violation.code") %>% # merging with unique violation description data
     filter(cuisine.description %in% topcuisines$cuisine.description) %>%
     group_by(cuisine.description) %>%
@@ -758,17 +748,18 @@ cuisine_common_violations_plot_func <- function(data) {
     fill = cuisine.description, 
     text = paste(
       "Violation Code Description:", violation.description,
+      "<br>Cuisine Type:", cuisine.description,
       "<br>Violation Code:", violation.code,
       "<br>Number of Violations:", violation.code.count
     )
   )) +
     scale_fill_manual(values = colors_cuisine) +
     geom_col() +
-    facet_wrap(~ cuisine.description, scales = "free_x", nrow=1) +  
+    facet_wrap(~ cuisine.description, scales = "free_x") +  
     scale_x_reordered() +
     xlab("Violation Type") + 
     ylab("Number of Violations") + 
-    guides(fill = "none") +
+    guides(fill = guide_legend(title = "Cuisine Type")) +
     theme_minimal(base_size = 14) +
     theme(
       plot.background = element_rect(fill = "#f8f9fa"),
@@ -797,5 +788,72 @@ cuisine_common_violations_plot_func <- function(data) {
   return(plot2)
 }
 
+
+# 12. HEALTH CODE VIOLATIONS PER EACH RESTAURANT IN EACH BOROUGH
+borough_1000_violations_func <- function(data) {
+  violationsummary <- data %>%
+    filter(critical.flag != 'Not Applicable') %>%
+    count(boro, name = 'totalviolations')
+  
+  restaurantsummary <- data %>%
+    filter(boro != '0') %>% # for some reason there are ones without any boroughs? I think these get filtered out in our graphs regardless so whatever
+    distinct(dba, boro, latitude, longitude, street, building, zipcode) %>%
+    count(boro, name = 'uniquerestaurants') 
+  
+  temp <- violationsummary %>%
+    inner_join(restaurantsummary, by = "boro") %>%
+    mutate(avginspections = totalviolations/uniquerestaurants) %>%
+    arrange(desc(avginspections))
+  
+  return(temp)
+}
+
+# plotting from last function 
+borough_1000_violations_plot_func <- function(data) {
+  borough1000violations <- borough_1000_violations_func(data)
+  
+  colors_borough <- c("Manhattan" = "#6D9AC6",  
+                      "Brooklyn" = "#F0A88C",  
+                      "Queens" = "#A1D6B9", 
+                      "Bronx" = "#F296B3",   
+                      "Staten Island" = "#C89BCC")
+  
+  graphtemp <- ggplot(borough1000violations, aes(x = reorder(boro, avginspections), y = avginspections, fill = boro)) +
+    geom_col(aes(text = paste(
+      "Violation Count: ", avginspections
+    ))) +
+    scale_fill_manual(values = colors_borough) +
+    xlab("Borough") + ylab("Number of Violations Per Restaurant") +
+    coord_flip() +
+    guides(fill = FALSE) +
+    theme_minimal(base_size = 14) +
+    labs(title = "Number of Health Code Violations Per Restaurants in each Borough") +
+    theme(
+      plot.background = element_rect(fill = "#f8f9fa"),
+      axis.title = element_text(size = 11, face = "plain"),
+      axis.text = element_text(size = 10, color = "#555555"),
+      legend.title = element_text(size = 11, face = "plain"),
+      legend.text = element_text(size = 10),
+      panel.grid.major = element_line(color = "#DDDDDD", linewidth = 0.5), 
+      panel.grid.minor = element_line(color = "#DDDDDD", linewidth = 0.25),
+      axis.text.x = element_text(),
+      axis.text.y = element_text(),
+      plot.title = element_text(size = 13, hjust = 0.5))
+  
+  graph <- ggplotly(graphtemp, tooltip = "text") %>%
+    layout(
+      xaxis = list(
+        showticklabels = TRUE
+      ),
+      yaxis = list(
+        fixedrange = FALSE
+      ),
+      hoverlabel = list(
+        bgcolor = "white",
+        font = list(color = "black")
+      )
+    )
+  return(graph)
+}
 
 
