@@ -101,7 +101,7 @@ top10_stat <- hcv_stat %>%
   arrange(desc(hcv_count)) %>%
   slice(1:10)
 ```
-### Let's pull reviews from some places in Brooklyn
+### Let's pull reviews from some places in Brooklyn (Example code)
 ```{r}
 library(googleway)
 
@@ -144,6 +144,14 @@ brook_revs <- bind_rows(apply(top10_brook_loc, 1, function(row){ # run function 
 write.csv(brook_revs,"~/Desktop/website/data/brook_revs.csv", row.names = FALSE)
 
 # Unable to get reviews for Grace Caribbean Cuisine -> total of 35 reviews & ratings
+```
+### Let's categorize the violation codes & descriptions
+```{r}
+# Pull unique violation codes & descriptions & save to a file
+filtered_data <- hcv %>%
+  distinct(violation.code, violation.description)
+
+write.csv(filtered_data,"~/Desktop/violations.csv", row.names = FALSE)
 ```
 
 
